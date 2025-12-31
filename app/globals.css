@@ -2,7 +2,7 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #545b7f;
 }
 
 @theme inline {
@@ -12,15 +12,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+p {
+  color: var(--foreground);
+  font-family: "Bahnschrift", "Segoe UI", Arial, Helvetica, sans-serif;
 }
 
-body {
-  background: var(--background);
+h1 {
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: "Bahnschrift", "Segoe UI", Arial, Helvetica, sans-serif;
+}
+
+.text-shadow-focusing {
+  text-shadow: 0px 0px 14.9px rgba(194, 201, 220, 0.67);
 }

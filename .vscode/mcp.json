@@ -1,0 +1,9 @@
+{
+	"servers": {
+		"Figma MCP": {
+			"url": "Implement this design from Figma. @https://www.figma.com/design/1TeTh7ITtKeMcvxhJRJos4/Pomodoro-Web-App?node-id=20-20&m=dev",
+			"type": "http"
+		}
+	},
+	"inputs": []
+}
