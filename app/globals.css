@@ -12,16 +12,16 @@
   --font-mono: var(--font-geist-mono);
 }
 
-p {
-  color: var(--foreground);
-  font-family: "Bahnschrift", "Segoe UI", Arial, Helvetica, sans-serif;
-}
+@layer base {
+  h1 {
+    @apply text-slate-600 text-9xl font-['Bahnschrift'];
+  }
 
-h1 {
-  color: var(--foreground);
-  font-family: "Bahnschrift", "Segoe UI", Arial, Helvetica, sans-serif;
-}
+  h2 {
+    @apply text-gray-400 text-sm font-normal font-['Bahnschrift'];
+  }
 
-.text-shadow-focusing {
-  text-shadow: 0px 0px 14.9px rgba(194, 201, 220, 0.67);
+  p {
+    @apply text-slate-600 text-xl font-normal font-['Bahnschrift'];
+  }
 }
