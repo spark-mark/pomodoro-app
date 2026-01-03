@@ -21,6 +21,10 @@
     @apply text-gray-400 text-sm font-normal font-['Bahnschrift'];
   }
 
+  h3 {
+    @apply text-slate-600 text-4xl font-normal font-['Bahnschrift'];
+  }
+
   p {
     @apply text-slate-600 text-xl font-normal font-['Bahnschrift'];
   }
