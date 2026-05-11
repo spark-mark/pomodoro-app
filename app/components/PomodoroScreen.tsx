@@ -45,19 +45,15 @@ const DEFAULT_STATS: PomodoroStats = {
 
 /* ── Background gradients ── */
 
-// Collapsed: radial bloom anchored to bottom.
+// Collapsed: radial bloom anchored at bottom of the timer area (~584px),
+// sized to match the Figma radialGradient matrix transform exactly.
 const BOTTOM_BLOOM =
-  "radial-gradient(ellipse 142% 57% at 50% 99%, rgba(198,92,92,1) 0%, rgba(245,134,94,0.726) 29%, rgba(220,129,51,0.598) 42%, rgba(196,124,8,0.469) 54%, rgba(196,152,68,0.235) 77%, rgba(196,180,128,0) 100%)";
+  "radial-gradient(663px 394px at 200px 584px, rgba(198,92,92,1) 0%, rgba(245,134,94,0.726) 29.3%, rgba(220,129,51,0.598) 41.8%, rgba(196,124,8,0.469) 54.3%, rgba(196,152,68,0.235) 77.2%, rgba(196,180,128,0) 100%)";
 
+// Only 2 layers needed — one per mode. The stats panel sliding up/down
+// naturally reveals/hides the bloom. No collapsed vs expanded crossfade.
 const FOCUS_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #e1e7f6 0%, #e1e7f6 100%)`;
 const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #31487b 0%, #31487b 100%)`;
-
-// Expanded: radial bloom anchored to top.
-const TOP_BLOOM =
-  "radial-gradient(ellipse 220% 100% at 50% 0%, rgba(245,134,94,0.55) 0%, rgba(220,129,51,0.30) 30%, rgba(196,180,128,0) 70%)";
-
-const FOCUS_TOP_BG = `${TOP_BLOOM}, linear-gradient(180deg, #e1e7f6 0%, #e6e1e0 100%)`;
-const BREAK_TOP_BG = `${TOP_BLOOM}, linear-gradient(180deg, #31487b 0%, #e6e1e0 100%)`;
 
 /* ── Layout constants ── */
 const TOP_COLLAPSED = 544;
@@ -189,22 +185,14 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
   return (
     <div className="relative w-[393px] h-[852px] overflow-hidden rounded-[50px] bg-[#e6e1e0]">
-      {/* ── Background layers (cross-fade by mode × expanded) ── */}
+      {/* ── Background layers (cross-fade by mode only) ── */}
       <div
         className="absolute inset-0 bg-crossfade"
-        style={{ backgroundImage: FOCUS_BG, opacity: isFocus && !expanded ? 1 : 0 }}
+        style={{ backgroundImage: FOCUS_BG, opacity: isFocus ? 1 : 0 }}
       />
       <div
         className="absolute inset-0 bg-crossfade"
-        style={{ backgroundImage: BREAK_BG, opacity: !isFocus && !expanded ? 1 : 0 }}
-      />
-      <div
-        className="absolute inset-0 bg-crossfade"
-        style={{ backgroundImage: FOCUS_TOP_BG, opacity: isFocus && expanded ? 1 : 0 }}
-      />
-      <div
-        className="absolute inset-0 bg-crossfade"
-        style={{ backgroundImage: BREAK_TOP_BG, opacity: !isFocus && expanded ? 1 : 0 }}
+        style={{ backgroundImage: BREAK_BG, opacity: isFocus ? 0 : 1 }}
       />
 
       {/* ── Timer area ── */}
@@ -265,22 +253,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             <AnimatedTimer text={formatTimer(remaining)} />
           </div>
 
-          {/* Close button — visible only when expanded */}
-          <button
-            type="button"
-            onClick={onCloseStats}
-            aria-label="Close stats"
-            className="pressable-sm fade-transition absolute right-0 bottom-0 flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px]"
-            style={{
-              opacity: expanded ? 1 : 0,
-              pointerEvents: expanded ? "auto" : "none",
-            }}
-          >
-            <img src="/stats_active.svg" alt="" className="size-[31px]" />
-          </button>
         </div>
 
-        {/* Controls — visible only when collapsed */}
+        {/* Controls — play/pause/stop fade out when expanded */}
         <div
           className="fade-transition mt-auto"
           style={{
@@ -291,14 +266,34 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           <TimerControls
             mode={mode}
             state={state}
+            expanded={expanded}
             onPlay={onPlay}
             onPause={onPause}
             onStop={onStop}
             onSkip={onSkip}
             onOpenStats={onOpenStats}
+            onCloseStats={onCloseStats}
           />
         </div>
       </div>
+
+      {/* ── Stats toggle button — always visible, positioned top-right when expanded ── */}
+      <button
+        type="button"
+        onClick={expanded ? onCloseStats : onOpenStats}
+        aria-label={expanded ? "Close stats" : "Open stats"}
+        className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px]"
+        style={{
+          top: expanded ? 80 : 473,
+          transition: "top 500ms var(--ease-out), opacity 300ms var(--ease-out)",
+        }}
+      >
+        <img
+          src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
+          alt=""
+          className="size-[31px]"
+        />
+      </button>
 
       {/* ── Stats area ── */}
       <div
@@ -309,8 +304,10 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           height: resolvedHeight,
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
+          border: "0.5px solid rgba(133,114,114,0.15)",
+          borderBottom: "none",
           boxShadow: expanded
-            ? "none"
+            ? "0px -8px 24px 0px rgba(133,114,114,0.12)"
             : "0px 0px 45px 0px rgba(133,114,114,0.25)",
           transition: isDragging
             ? "none"

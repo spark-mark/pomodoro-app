@@ -6,11 +6,13 @@ import type { PomodoroMode, PomodoroState } from "./pomodoro-types";
 export interface TimerControlsProps {
   mode: PomodoroMode;
   state: PomodoroState;
+  expanded?: boolean;
   onPlay?: () => void;
   onPause?: () => void;
   onStop?: () => void;
   onSkip?: () => void;
   onOpenStats?: () => void;
+  onCloseStats?: () => void;
 }
 
 const ICON_BTN = "size-[50.826px] block";
@@ -60,7 +62,7 @@ function AnimatePresence({
 }
 
 export default function TimerControls(props: TimerControlsProps) {
-  const { mode, state, onPlay, onPause, onStop, onSkip, onOpenStats } = props;
+  const { mode, state, expanded, onPlay, onPause, onStop, onSkip, onOpenStats, onCloseStats } = props;
 
   return (
     <div className="flex items-end justify-between w-full drop-shadow-[0px_0px_22.5px_rgba(32,22,22,0.25)]">
@@ -108,14 +110,8 @@ export default function TimerControls(props: TimerControlsProps) {
         </AnimatePresence>
       </div>
 
-      <button
-        type="button"
-        onClick={onOpenStats}
-        aria-label="Open stats"
-        className="pressable-sm flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px]"
-      >
-        <img src="/stats_inactive.svg" alt="" className="size-[31px]" />
-      </button>
+      {/* Stats button placeholder — keeps justify-between spacing */}
+      <div className="size-[45px]" />
     </div>
   );
 }

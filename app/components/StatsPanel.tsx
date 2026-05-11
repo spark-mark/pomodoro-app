@@ -52,7 +52,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
 
   return (
-    <div className="bg-[#cec1bf] h-[100px] rounded-[18px] overflow-hidden w-full">
+    <div className="bg-[#cec1bf] h-[100px] rounded-[18px] overflow-hidden w-full relative">
       <div
         ref={scrollRef}
         className="overflow-x-auto scrollbar-hide h-full"
@@ -140,6 +140,15 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
           })}
         </div>
       </div>
+      {/* Edge fade overlays — z-10 to sit above playhead and all content */}
+      <div
+        className="absolute inset-y-0 left-0 w-[36px] z-10 pointer-events-none rounded-l-[18px]"
+        style={{ background: "linear-gradient(to right, #cec1bf, rgba(206,193,191,0))" }}
+      />
+      <div
+        className="absolute inset-y-0 right-0 w-[36px] z-10 pointer-events-none rounded-r-[18px]"
+        style={{ background: "linear-gradient(to left, #cec1bf, rgba(206,193,191,0))" }}
+      />
     </div>
   );
 }
