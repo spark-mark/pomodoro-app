@@ -3,6 +3,173 @@
 :root {
   --background: #ffffff;
   --foreground: #545b7f;
+  --font-display: Bahnschrift, var(--font-geist-sans), system-ui, sans-serif;
+
+  /* Custom easings — stronger than browser defaults */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+/* ── Pressable button interactions ── */
+.pressable {
+  transition: transform 160ms var(--ease-out);
+  will-change: transform;
+  cursor: pointer;
+}
+
+.pressable:active {
+  transform: scale(0.96);
+}
+
+.pressable-sm {
+  transition: transform 160ms var(--ease-out);
+  will-change: transform;
+  cursor: pointer;
+}
+
+.pressable-sm:active {
+  transform: scale(0.94);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pressable:hover {
+    transform: scale(1.03);
+  }
+
+  .pressable-sm:hover {
+    transform: scale(1.04);
+  }
+
+  /* active overrides hover */
+  .pressable:active,
+  .pressable-sm:active {
+    transform: scale(0.96);
+  }
+}
+
+/* ── Fade-in for conditionally rendered elements ── */
+.fade-in {
+  animation: fadeScaleIn 200ms var(--ease-out) both;
+}
+
+@keyframes fadeScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ── Unified transition utilities ── */
+.timer-area-transition {
+  transition: height 500ms var(--ease-out), padding-top 500ms var(--ease-out),
+    padding-bottom 500ms var(--ease-out), top 500ms var(--ease-out);
+}
+
+.text-transition {
+  transition: font-size 500ms var(--ease-out), letter-spacing 500ms var(--ease-out),
+    color 1200ms var(--ease-out), margin-top 500ms var(--ease-out),
+    height 500ms var(--ease-out), width 500ms var(--ease-out);
+}
+
+.fade-transition {
+  transition: opacity 300ms var(--ease-out);
+}
+
+.expanded-content-transition {
+  transition: opacity 400ms 150ms var(--ease-out), max-height 500ms var(--ease-out);
+}
+
+.stats-border-transition {
+  transition: border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out);
+}
+
+.bg-crossfade {
+  transition: opacity 1200ms var(--ease-out);
+}
+
+/* ── Control enter/exit ── */
+.control-presence {
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  will-change: opacity, transform;
+}
+
+/* ── Digit slide-blur animations ── */
+.digit-enter {
+  animation: digitSlideIn 250ms var(--ease-out) both;
+}
+
+.digit-exit {
+  animation: digitSlideOut 200ms var(--ease-out) both;
+}
+
+@keyframes digitSlideIn {
+  from {
+    transform: translateY(16%);
+    opacity: 0;
+    filter: blur(3px);
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0px);
+  }
+}
+
+@keyframes digitSlideOut {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  to {
+    transform: translateY(-16%);
+    opacity: 0;
+    filter: blur(3px);
+  }
+}
+
+/* ── Scrollbar hiding ── */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .pressable,
+  .pressable-sm {
+    transition: none;
+  }
+
+  .pressable:active {
+    transform: scale(0.97);
+  }
+
+  .fade-in {
+    animation: fadeOnly 150ms ease both;
+  }
+
+  .timer-area-transition,
+  .text-transition,
+  .fade-transition,
+  .expanded-content-transition,
+  .stats-border-transition,
+  .bg-crossfade {
+    transition-duration: 0ms !important;
+    transition-delay: 0ms !important;
+  }
+
+  @keyframes fadeOnly {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
 }
 
 @theme inline {
@@ -14,18 +181,22 @@
 
 @layer base {
   h1 {
-    @apply text-slate-600 text-9xl font-['Bahnschrift'];
+    @apply text-slate-600 text-9xl;
+    font-family: var(--font-display);
   }
 
   h2 {
-    @apply text-gray-400 text-sm font-normal font-['Bahnschrift'];
+    @apply text-gray-400 text-sm font-normal;
+    font-family: var(--font-display);
   }
 
   h3 {
-    @apply text-slate-600 text-4xl font-normal font-['Bahnschrift'];
+    @apply text-slate-600 text-4xl font-normal;
+    font-family: var(--font-display);
   }
 
   p {
-    @apply text-slate-600 text-xl font-normal font-['Bahnschrift'];
+    @apply text-slate-600 text-xl font-normal;
+    font-family: var(--font-display);
   }
 }
