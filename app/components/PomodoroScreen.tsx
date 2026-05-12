@@ -166,6 +166,12 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (e.button !== 0) return;
+      if (expanded) {
+        const panel = panelRef.current;
+        if (!panel) return;
+        const rect = panel.getBoundingClientRect();
+        if (e.clientY - rect.top > 30) return;
+      }
       const currentTop = expanded ? topExpanded : topCollapsed;
       dragRef.current = {
         startY: e.clientY,
@@ -356,6 +362,10 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       <div
         ref={panelRef}
         className="absolute inset-x-0 flex flex-col bg-[#e6e1e0]"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         style={{
           top: resolvedTop,
           height: resolvedHeight,
@@ -369,17 +379,12 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           transition: isDragging
             ? "none"
             : "top 500ms var(--ease-out), height 500ms var(--ease-out), border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out)",
+          touchAction: "none",
+          cursor: expanded ? "default" : "grab",
         }}
       >
         {/* Drag handle */}
-        <div
-          className="flex justify-center pt-[20px] pb-[20px] shrink-0 cursor-grab active:cursor-grabbing"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
-          style={{ touchAction: "none" }}
-        >
+        <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing">
           <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
         </div>
 
@@ -388,6 +393,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           className="flex-1 flex flex-col"
           style={{
             overflowY: expanded ? "auto" : "hidden",
+            touchAction: expanded ? "pan-y" : "none",
           }}
         >
           <StatsPanel
