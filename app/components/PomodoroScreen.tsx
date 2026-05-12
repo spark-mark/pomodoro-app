@@ -1,11 +1,11 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import AnimatedTimer from "./AnimatedTimer";
-import ExpandedStatsContent from "./ExpandedStatsContent";
 import StatsPanel from "./StatsPanel";
 import TimerControls from "./TimerControls";
 import {
+  DEFAULT_WEEKLY_GOAL_MINUTES,
   formatTimer,
   modeDuration,
   type PomodoroMode,
@@ -19,8 +19,14 @@ export interface PomodoroScreenProps {
   /** Remaining seconds. Defaults to the full duration of the current mode. */
   remaining?: number;
   stats?: PomodoroStats;
+  /** Weekly focus minutes goal. Defaults to 1800 (30h). */
+  weeklyGoalMinutes?: number;
+  /** Carryover from prior week — positive = deficit, negative = surplus. */
+  carryoverMinutes?: number;
   /** When true the stats overlay is expanded. */
   expanded?: boolean;
+  /** Fill the viewport instead of using fixed 393×852 dimensions. */
+  fullscreen?: boolean;
   /** Start time (ms, simulated) of the currently in-progress focus session. */
   currentSessionStart?: number | null;
   /** Elapsed seconds of the currently in-progress focus session. */
@@ -41,6 +47,7 @@ const DEFAULT_STATS: PomodoroStats = {
   totalPomos: 214,
   totalFocusMinutes: 6755,
   todaySessions: [],
+  weeklyFocusMinutes: [60, 120, 90, 180, 75, 240, 155],
 };
 
 /* ── Background gradients ── */
@@ -55,10 +62,18 @@ const BOTTOM_BLOOM =
 const FOCUS_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #e1e7f6 0%, #e1e7f6 100%)`;
 const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #31487b 0%, #31487b 100%)`;
 
-/* ── Layout constants ── */
-const TOP_COLLAPSED = 544;
-const TOP_EXPANDED = 140;
-const TOP_MIDPOINT = (TOP_COLLAPSED + TOP_EXPANDED) / 2;
+/* ── Design-time layout constants (based on 393×852 frame) ── */
+const DESIGN_H = 852;
+const D_TOP_COLLAPSED = 544;
+const D_TOP_EXPANDED = 140;
+const D_TIMER_H_COLLAPSED = 589;
+const D_TIMER_H_EXPANDED = 140;
+const D_TIMER_PT_COLLAPSED = 120;
+const D_TIMER_PT_EXPANDED = 38;
+const D_TIMER_PB_COLLAPSED = 65;
+const D_TIMER_PB_EXPANDED = 12;
+const D_STATS_BTN_COLLAPSED = 479;
+const D_STATS_BTN_EXPANDED = 75;
 
 /* ── Helpers ── */
 
@@ -96,7 +111,10 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     state,
     remaining = modeDuration(mode),
     stats = DEFAULT_STATS,
+    weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
+    carryoverMinutes = 0,
     expanded = false,
+    fullscreen = false,
     currentSessionStart = null,
     currentSessionElapsed = 0,
     simNow,
@@ -110,8 +128,30 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
   const header = headerColors(mode);
   const tColor = timerColor(mode, state, expanded);
-
   const isFocus = mode === "focus";
+
+  /* ── Responsive scaling ── */
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerH, setContainerH] = useState(DESIGN_H);
+
+  useEffect(() => {
+    if (!fullscreen) return;
+    const el = containerRef.current;
+    if (!el) return;
+    setContainerH(el.clientHeight);
+    const observer = new ResizeObserver(([entry]) => {
+      setContainerH(entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [fullscreen]);
+
+  const H = fullscreen ? containerH : DESIGN_H;
+  const s = H / DESIGN_H;
+
+  const topCollapsed = Math.round(D_TOP_COLLAPSED * s);
+  const topExpanded = Math.round(D_TOP_EXPANDED * s);
+  const topMidpoint = (topCollapsed + topExpanded) / 2;
 
   /* ── Drag-to-expand/collapse ── */
   const [dragTop, setDragTop] = useState<number | null>(null);
@@ -125,9 +165,8 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
-      // Only primary button / single touch
       if (e.button !== 0) return;
-      const currentTop = expanded ? TOP_EXPANDED : TOP_COLLAPSED;
+      const currentTop = expanded ? topExpanded : topCollapsed;
       dragRef.current = {
         startY: e.clientY,
         startTop: currentTop,
@@ -136,19 +175,22 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       panelRef.current?.setPointerCapture(e.pointerId);
       setDragTop(currentTop);
     },
-    [expanded],
+    [expanded, topExpanded, topCollapsed],
   );
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const dy = e.clientY - drag.startY;
-    const newTop = Math.max(
-      TOP_EXPANDED,
-      Math.min(TOP_COLLAPSED, drag.startTop + dy),
-    );
-    setDragTop(newTop);
-  }, []);
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
+      const dy = e.clientY - drag.startY;
+      const newTop = Math.max(
+        topExpanded,
+        Math.min(topCollapsed, drag.startTop + dy),
+      );
+      setDragTop(newTop);
+    },
+    [topExpanded, topCollapsed],
+  );
 
   const handlePointerUp = useCallback(
     (e: React.PointerEvent) => {
@@ -158,33 +200,36 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       dragRef.current = null;
 
       const finalTop = Math.max(
-        TOP_EXPANDED,
-        Math.min(TOP_COLLAPSED, drag.startTop + (e.clientY - drag.startY)),
+        topExpanded,
+        Math.min(topCollapsed, drag.startTop + (e.clientY - drag.startY)),
       );
       setDragTop(null);
 
-      // Snap based on midpoint
-      if (finalTop < TOP_MIDPOINT) {
-        // Snap to expanded
+      if (finalTop < topMidpoint) {
         if (!expanded) onOpenStats?.();
       } else {
-        // Snap to collapsed
         if (expanded) onCloseStats?.();
       }
     },
-    [expanded, onOpenStats, onCloseStats],
+    [expanded, topExpanded, topCollapsed, topMidpoint, onOpenStats, onCloseStats],
   );
 
-  // Resolve the actual panel top — drag position overrides prop-driven position
   const resolvedTop = isDragging
     ? dragTop
     : expanded
-      ? TOP_EXPANDED
-      : TOP_COLLAPSED;
-  const resolvedHeight = 852 - resolvedTop;
+      ? topExpanded
+      : topCollapsed;
+  const resolvedHeight = H - resolvedTop;
 
   return (
-    <div className="relative w-[393px] h-[852px] overflow-hidden rounded-[50px] bg-[#e6e1e0]">
+    <div
+      ref={containerRef}
+      className={
+        fullscreen
+          ? "relative w-full h-dvh overflow-hidden bg-[#e6e1e0]"
+          : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px] bg-[#e6e1e0]"
+      }
+    >
       {/* ── Background layers (cross-fade by mode only) ── */}
       <div
         className="absolute inset-0 bg-crossfade"
@@ -199,9 +244,17 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       <div
         className="absolute inset-x-0 top-0 timer-area-transition px-[20px] flex flex-col pointer-events-none"
         style={{
-          height: expanded ? 140 : 589,
-          paddingTop: expanded ? 60 : 120,
-          paddingBottom: expanded ? 12 : 71,
+          height: expanded
+            ? Math.round(D_TIMER_H_EXPANDED * s)
+            : Math.round(D_TIMER_H_COLLAPSED * s),
+          paddingTop: fullscreen
+            ? `calc(${expanded ? Math.round(D_TIMER_PT_EXPANDED * s) : Math.round(D_TIMER_PT_COLLAPSED * s)}px + env(safe-area-inset-top, 0px))`
+            : expanded
+              ? Math.round(D_TIMER_PT_EXPANDED * s)
+              : Math.round(D_TIMER_PT_COLLAPSED * s),
+          paddingBottom: expanded
+            ? Math.round(D_TIMER_PB_EXPANDED * s)
+            : Math.round(D_TIMER_PB_COLLAPSED * s),
         }}
       >
         {/* Header + timer text */}
@@ -277,14 +330,18 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         </div>
       </div>
 
-      {/* ── Stats toggle button — always visible, positioned top-right when expanded ── */}
+      {/* ── Stats toggle button ── */}
       <button
         type="button"
         onClick={expanded ? onCloseStats : onOpenStats}
         aria-label={expanded ? "Close stats" : "Open stats"}
         className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px]"
         style={{
-          top: expanded ? 80 : 473,
+          top: fullscreen
+            ? `calc(${expanded ? Math.round(D_STATS_BTN_EXPANDED * s) : Math.round(D_STATS_BTN_COLLAPSED * s)}px + env(safe-area-inset-top, 0px))`
+            : expanded
+              ? Math.round(D_STATS_BTN_EXPANDED * s)
+              : Math.round(D_STATS_BTN_COLLAPSED * s),
           transition: "top 500ms var(--ease-out), opacity 300ms var(--ease-out)",
         }}
       >
@@ -312,40 +369,35 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           transition: isDragging
             ? "none"
             : "top 500ms var(--ease-out), height 500ms var(--ease-out), border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out)",
-          touchAction: "none",
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
       >
         {/* Drag handle */}
-        <div className="flex justify-center pt-[7px] pb-[7px] cursor-grab active:cursor-grabbing shrink-0">
+        <div
+          className="flex justify-center pt-[20px] pb-[20px] shrink-0 cursor-grab active:cursor-grabbing"
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          style={{ touchAction: "none" }}
+        >
           <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
         </div>
 
         {/* Scrollable inner when expanded */}
         <div
           className="flex-1 flex flex-col"
-          style={{ overflowY: expanded ? "auto" : "hidden" }}
+          style={{
+            overflowY: expanded ? "auto" : "hidden",
+          }}
         >
           <StatsPanel
             stats={stats}
+            weeklyGoalMinutes={weeklyGoalMinutes}
+            carryoverMinutes={carryoverMinutes}
             currentSessionStart={currentSessionStart}
             currentSessionElapsed={currentSessionElapsed}
             simNow={simNow}
           />
-
-          {/* Expanded-only content */}
-          <div
-            className="expanded-content-transition overflow-hidden"
-            style={{
-              opacity: expanded ? 1 : 0,
-              maxHeight: expanded ? 9999 : 0,
-            }}
-          >
-            <ExpandedStatsContent />
-          </div>
         </div>
       </div>
     </div>

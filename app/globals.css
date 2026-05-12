@@ -3,7 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #545b7f;
-  --font-display: Bahnschrift, var(--font-geist-sans), system-ui, sans-serif;
+  --font-display: var(--font-barlow), Bahnschrift, system-ui, sans-serif;
 
   /* Custom easings — stronger than browser defaults */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -77,10 +77,6 @@
 
 .fade-transition {
   transition: opacity 300ms var(--ease-out);
-}
-
-.expanded-content-transition {
-  transition: opacity 400ms 150ms var(--ease-out), max-height 500ms var(--ease-out);
 }
 
 .stats-border-transition {
@@ -159,7 +155,6 @@
   .timer-area-transition,
   .text-transition,
   .fade-transition,
-  .expanded-content-transition,
   .stats-border-transition,
   .bg-crossfade {
     transition-duration: 0ms !important;

@@ -33,3 +33,4 @@ next-env.d.ts
 tempo/.tempo/
 tempo/node_modules/
 tempo/dist/
+.env*.local

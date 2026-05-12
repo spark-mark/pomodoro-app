@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import PomodoroScreen from "./PomodoroScreen";
 import {
+  DEFAULT_WEEKLY_GOAL_MINUTES,
   FOCUS_DURATION_SECONDS,
   modeDuration,
   type PomodoroMode,
@@ -12,6 +13,76 @@ import {
 } from "./pomodoro-types";
 
 const STORAGE_KEY = "pomodoro-mobile.v1";
+const GOALS_STORAGE_KEY = "pomodoro-goals.v1";
+
+interface PersistedGoals {
+  weeklyGoalMinutes: number;
+  /** Positive = deficit (work more), negative = surplus (work less). */
+  carryoverMinutes: number;
+  /** ISO week identifier (e.g., "2026-W20") of the most recent rollover check. */
+  lastWeekKey: string;
+}
+
+function isoWeekKey(date: Date): string {
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+  );
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const weekNum = Math.ceil(
+    ((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7,
+  );
+  return `${d.getUTCFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+}
+
+function loadGoal(): PersistedGoals {
+  const fallback: PersistedGoals = {
+    weeklyGoalMinutes: DEFAULT_WEEKLY_GOAL_MINUTES,
+    carryoverMinutes: 0,
+    lastWeekKey: "",
+  };
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = window.localStorage.getItem(GOALS_STORAGE_KEY);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw) as Partial<PersistedGoals>;
+    return {
+      weeklyGoalMinutes:
+        parsed.weeklyGoalMinutes ?? DEFAULT_WEEKLY_GOAL_MINUTES,
+      carryoverMinutes: parsed.carryoverMinutes ?? 0,
+      lastWeekKey: parsed.lastWeekKey ?? "",
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function saveGoal(g: PersistedGoals): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(GOALS_STORAGE_KEY, JSON.stringify(g));
+  } catch {
+    /* ignore */
+  }
+}
+
+function previousWeekTotalMinutes(
+  byDate: Record<string, PersistedDayEntry>,
+  now: Date,
+): number {
+  const sunday = new Date(now);
+  sunday.setHours(0, 0, 0, 0);
+  sunday.setDate(now.getDate() - now.getDay() - 7);
+  let total = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    const entry = byDate[dateKey(d)];
+    if (entry) total += Math.floor(entry.focusSeconds / 60);
+  }
+  return total;
+}
 
 interface PersistedDayEntry {
   pomos: number;
@@ -25,12 +96,32 @@ interface Persisted {
   totalFocusSeconds: number;
 }
 
-function todayKey(): string {
-  const d = new Date();
+function dateKey(d: Date): string {
   const y = d.getFullYear();
   const m = `${d.getMonth() + 1}`.padStart(2, "0");
   const dd = `${d.getDate()}`.padStart(2, "0");
   return `${y}-${m}-${dd}`;
+}
+
+function todayKey(): string {
+  return dateKey(new Date());
+}
+
+function weeklyFocusMinutesFromByDate(
+  byDate: Record<string, PersistedDayEntry>,
+): number[] {
+  const now = new Date();
+  const sunday = new Date(now);
+  sunday.setHours(0, 0, 0, 0);
+  sunday.setDate(now.getDate() - now.getDay());
+  const result = new Array<number>(7).fill(0);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    const entry = byDate[dateKey(d)];
+    if (entry) result[i] = Math.floor(entry.focusSeconds / 60);
+  }
+  return result;
 }
 
 function loadPersisted(storageKey: string): Persisted {
@@ -72,22 +163,15 @@ function statsFromPersisted(p: Persisted): PomodoroStats {
     totalPomos: p.totalPomos,
     totalFocusMinutes: Math.floor(p.totalFocusSeconds / 60),
     todaySessions: day.sessions ?? [],
+    weeklyFocusMinutes: weeklyFocusMinutesFromByDate(p.byDate),
   };
 }
 
 export interface InteractivePomodoroProps {
-  /**
-   * Optional override of the localStorage key. Use a distinct key for the
-   * canvas storyboard so that experimenting on the canvas does not stomp the
-   * user's real persisted stats.
-   */
   storageKey?: string;
-  /**
-   * Optional speed multiplier for the timer tick. Defaults to 1 (real time).
-   * Pass e.g. 30 to make 1 second of wall-clock advance the timer by 30
-   * seconds — useful for the canvas storyboard to demo the full flow quickly.
-   */
   speed?: number;
+  /** Fill the viewport instead of using fixed 393×852 dimensions. */
+  fullscreen?: boolean;
 }
 
 export default function InteractivePomodoro(props: InteractivePomodoroProps) {
@@ -102,6 +186,11 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     totalPomos: 0,
     totalFocusSeconds: 0,
   });
+  const [goals, setGoals] = useState<PersistedGoals>({
+    weeklyGoalMinutes: DEFAULT_WEEKLY_GOAL_MINUTES,
+    carryoverMinutes: 0,
+    lastWeekKey: "",
+  });
   const [showStats, setShowStats] = useState<boolean>(false);
 
   const sessionStartRef = useRef<number | null>(null);
@@ -109,7 +198,30 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const [simNow, setSimNow] = useState<number>(Date.now());
 
   useEffect(() => {
-    setPersisted(loadPersisted(storageKey));
+    const data = loadPersisted(storageKey);
+    setPersisted(data);
+
+    const loadedGoals = loadGoal();
+    const now = new Date();
+    const currentWeekKey = isoWeekKey(now);
+    let nextGoals: PersistedGoals = loadedGoals;
+    if (!loadedGoals.lastWeekKey) {
+      nextGoals = { ...loadedGoals, lastWeekKey: currentWeekKey };
+    } else if (loadedGoals.lastWeekKey !== currentWeekKey) {
+      const prevTotal = previousWeekTotalMinutes(data.byDate, now);
+      const prevEffectiveGoal =
+        loadedGoals.weeklyGoalMinutes + loadedGoals.carryoverMinutes;
+      const delta = prevEffectiveGoal - prevTotal;
+      const maxCarryover = loadedGoals.weeklyGoalMinutes * 0.25;
+      const clamped = Math.max(-maxCarryover, Math.min(maxCarryover, delta));
+      nextGoals = {
+        weeklyGoalMinutes: loadedGoals.weeklyGoalMinutes,
+        carryoverMinutes: clamped,
+        lastWeekKey: currentWeekKey,
+      };
+    }
+    if (nextGoals !== loadedGoals) saveGoal(nextGoals);
+    setGoals(nextGoals);
   }, [storageKey]);
 
   useEffect(() => {
@@ -274,6 +386,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       remaining={remaining}
       stats={stats}
       expanded={showStats}
+      fullscreen={props.fullscreen}
+      weeklyGoalMinutes={goals.weeklyGoalMinutes}
+      carryoverMinutes={goals.carryoverMinutes}
       currentSessionStart={sessionStartRef.current}
       currentSessionElapsed={currentSessionElapsed}
       simNow={simNow}

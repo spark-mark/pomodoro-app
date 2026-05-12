@@ -1,15 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import StatBox from "./StatBox";
 import {
+  computeAdaptiveTarget,
+  DEFAULT_WEEKLY_GOAL_MINUTES,
   FOCUS_DURATION_SECONDS,
+  type AdaptiveTarget,
   type PomodoroStats,
   type SessionEntry,
 } from "./pomodoro-types";
 
 export interface StatsPanelProps {
   stats: PomodoroStats;
+  weeklyGoalMinutes?: number;
+  carryoverMinutes?: number;
   currentSessionStart?: number | null;
   currentSessionElapsed?: number;
   simNow?: number;
@@ -153,36 +158,278 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
   );
 }
 
+/* ── Year heatmap (placeholder) ── */
+
+function YearHeatmap() {
+  const rows = 7;
+  const cols = 52;
+  const accent = new Set([
+    3, 9, 15, 22, 31, 47, 80, 110, 145, 200, 240, 290, 320,
+  ]);
+  return (
+    <div className="flex flex-col gap-[3px]">
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="flex gap-[3px]">
+          {Array.from({ length: cols }).map((_, c) => {
+            const idx = c * rows + r;
+            const on = accent.has(idx);
+            return (
+              <div
+                key={c}
+                className="size-[5px] rounded-[1px]"
+                style={{ backgroundColor: on ? "#545b7f" : "#cec1bf" }}
+              />
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Weekly section (bar chart + controls) ── */
+
+const MAX_HOURS = 8;
+const GRID_HOURS = [2, 4, 6, 8];
+
+const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+function weekLabel(offset: number): string {
+  if (offset === 0) return "This week";
+  if (offset === -1) return "Last week";
+  return `${Math.abs(offset)} weeks ago`;
+}
+
+const DASHED_AMBER_BORDER = "1.5px dashed #a98461";
+
+interface WeeklySectionProps {
+  weeklyFocusMinutes: number[];
+  adaptiveTarget: AdaptiveTarget;
+}
+
+function WeeklySection({
+  weeklyFocusMinutes,
+  adaptiveTarget,
+}: WeeklySectionProps) {
+  const [weekOffset, setWeekOffset] = useState(0);
+
+  const days = DAY_LABELS.map((label, i) => ({
+    label,
+    hours: (weeklyFocusMinutes[i] ?? 0) / 60,
+  }));
+  const dailyAverageMinutes = Math.round(
+    weeklyFocusMinutes.reduce((sum, m) => sum + m, 0) / 7,
+  );
+  const avgHours = dailyAverageMinutes / 60;
+  const avgBottomPct = Math.min(1, avgHours / MAX_HOURS) * 100;
+  const targetHours = adaptiveTarget.dailyTargetMinutes / 60;
+  const targetPct = Math.min(1, targetHours / MAX_HOURS) * 100;
+  const todayDayIndex = adaptiveTarget.todayDayIndex;
+
+  return (
+    <div className="flex flex-col gap-[12px]">
+      {/* Header row: Daily Average + week nav */}
+      <div className="flex items-end justify-between">
+        <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
+        <div className="flex items-center gap-[2px]">
+          <button
+            type="button"
+            onClick={() => setWeekOffset(weekOffset - 1)}
+            className="pressable-sm text-[#8f92a9] text-[14px] leading-none"
+          >
+            ‹
+          </button>
+          <span className="text-[#545b7f] text-[12px] tracking-[-0.5px] min-w-[64px] text-center">
+            {weekLabel(weekOffset)}
+          </span>
+          <button
+            type="button"
+            onClick={() => setWeekOffset(Math.min(0, weekOffset + 1))}
+            className="pressable-sm text-[#8f92a9] text-[14px] leading-none"
+            style={{ opacity: weekOffset === 0 ? 0.3 : 1 }}
+            disabled={weekOffset === 0}
+          >
+            ›
+          </button>
+        </div>
+      </div>
+
+      {/* Bar chart with Y-axis labels */}
+      <div className="flex">
+        <div className="relative h-[120px] w-[24px] shrink-0">
+          {GRID_HOURS.map((h) => (
+            <div
+              key={h}
+              className="absolute right-[4px] text-[10px] text-[#8f92a9] tracking-[-0.5px] leading-none"
+              style={{
+                bottom: `${(h / MAX_HOURS) * 100}%`,
+                transform: "translateY(50%)",
+              }}
+            >
+              {h}h
+            </div>
+          ))}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="relative h-[120px] w-full">
+            {GRID_HOURS.map((h) => (
+              <div
+                key={h}
+                className="absolute left-0 right-0 border-t border-dotted border-[#8f92a9]/40"
+                style={{ bottom: `${(h / MAX_HOURS) * 100}%` }}
+              />
+            ))}
+            <div className="absolute inset-0 flex items-end justify-between gap-[6px] px-[2px]">
+              {days.map((d, i) => {
+                const actualPct = Math.min(1, d.hours / MAX_HOURS) * 100;
+                const isToday = i === todayDayIndex;
+                const isFuture = i > todayDayIndex;
+                return (
+                  <div key={d.label} className="flex-1 relative h-full">
+                    {!isFuture && (
+                      <div
+                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[3px]"
+                        style={{ height: `${actualPct}%` }}
+                      />
+                    )}
+                    {isToday && targetPct > actualPct && (
+                      <div
+                        className="absolute inset-x-0 rounded-[3px]"
+                        style={{
+                          bottom: `${actualPct}%`,
+                          height: `${targetPct - actualPct}%`,
+                          border: DASHED_AMBER_BORDER,
+                          background: "transparent",
+                        }}
+                      />
+                    )}
+                    {isFuture && targetPct > 0 && (
+                      <div
+                        className="absolute inset-x-0 bottom-0 rounded-[3px]"
+                        style={{
+                          height: `${targetPct}%`,
+                          border: DASHED_AMBER_BORDER,
+                          background: "transparent",
+                        }}
+                      />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div
+              className="absolute left-0 right-0 border-t border-[#a98461]/60"
+              style={{ bottom: `${avgBottomPct}%` }}
+            />
+          </div>
+          <div className="flex items-start justify-between mt-1 px-[2px]">
+            {days.map((d) => (
+              <span
+                key={d.label}
+                className="text-[11px] text-[#8f92a9] tracking-[-0.5px] flex-1 text-center"
+              >
+                {d.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+    </div>
+  );
+}
+
 export default function StatsPanel(props: StatsPanelProps) {
   const {
     stats,
+    weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
+    carryoverMinutes = 0,
     currentSessionStart = null,
     currentSessionElapsed = 0,
     simNow,
   } = props;
+
+  const target = computeAdaptiveTarget(
+    stats.weeklyFocusMinutes,
+    weeklyGoalMinutes,
+    carryoverMinutes,
+    new Date().getDay(),
+  );
+
+  const remainingPomos = Math.max(0, target.suggestedPomos - stats.todayPomos);
+  const totalSquares = stats.todayPomos + remainingPomos;
+
   return (
-    <div className="pb-[14px] px-[18px] flex flex-col gap-[22px]">
-      <div className="w-full max-w-[356px] mx-auto">
-        <MiniSessionTimeline
-          sessions={stats.todaySessions}
-          currentSessionStart={currentSessionStart}
-          currentSessionElapsed={currentSessionElapsed}
-          now={simNow ?? Date.now()}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-[10px] w-full max-w-[356px] mx-auto">
-        <StatBox title="Today’s Pomos" value={stats.todayPomos} />
+    <div className="px-[18px] pb-[32px] flex flex-col gap-[24px]">
+      <MiniSessionTimeline
+        sessions={stats.todaySessions}
+        currentSessionStart={currentSessionStart}
+        currentSessionElapsed={currentSessionElapsed}
+        now={simNow ?? Date.now()}
+      />
+
+      {/* ── Daily ── */}
+      <div className="grid grid-cols-2 gap-[10px]">
+        <div className="flex flex-col gap-[8px] items-start">
+          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+            Today&apos;s Pomos
+          </p>
+          <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
+            {totalSquares > 0 ? (
+              <>
+                {Array.from({ length: stats.todayPomos }).map((_, i) => (
+                  <div
+                    key={`s-${i}`}
+                    className="size-[18px] rounded-[4px] bg-[#545b7f]"
+                  />
+                ))}
+                {Array.from({ length: remainingPomos }).map((_, i) => (
+                  <div
+                    key={`d-${i}`}
+                    className="size-[18px] rounded-[4px]"
+                    style={{
+                      border: "1.5px dashed #a98461",
+                      background: "transparent",
+                    }}
+                  />
+                ))}
+              </>
+            ) : (
+              <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
+                None
+              </p>
+            )}
+          </div>
+        </div>
         <StatBox
-          title="Today’s Focus Duration"
+          title="Today's Focus"
           value={stats.todayFocusMinutes}
           format="time"
         />
-        <StatBox title="Total Pomos" value={stats.totalPomos} />
-        <StatBox
-          title="Total Focus Duration"
-          value={stats.totalFocusMinutes}
-          format="time"
-        />
+      </div>
+
+      {/* ── Weekly ── */}
+      <WeeklySection
+        weeklyFocusMinutes={stats.weeklyFocusMinutes}
+        adaptiveTarget={target}
+      />
+
+      {/* ── Lifetime ── */}
+      <div className="flex flex-col gap-[16px]">
+        <div className="grid grid-cols-2 gap-[10px]">
+          <StatBox title="Total Pomos" value={stats.totalPomos} />
+          <StatBox
+            title="Total Focus Duration"
+            value={stats.totalFocusMinutes}
+            format="time"
+          />
+        </div>
+        <div className="flex flex-col gap-[8px]">
+          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+            Year Overview
+          </p>
+          <YearHeatmap />
+        </div>
       </div>
     </div>
   );
