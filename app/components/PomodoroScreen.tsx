@@ -65,9 +65,9 @@ const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #31487b 0%, #31487b 1
 /* ── Design-time layout constants (based on 393×852 frame) ── */
 const DESIGN_H = 852;
 const D_TOP_COLLAPSED = 544;
-const D_TOP_EXPANDED = 140;
+const D_TOP_EXPANDED = 160;
 const D_TIMER_H_COLLAPSED = 589;
-const D_TIMER_H_EXPANDED = 140;
+const D_TIMER_H_EXPANDED = 160;
 const D_TIMER_PT_COLLAPSED = 120;
 const D_TIMER_PT_EXPANDED = 38;
 const D_TIMER_PB_COLLAPSED = 65;
@@ -365,7 +365,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           onClick={expanded ? onCloseStats : onOpenStats}
           aria-label={expanded ? "Close stats" : "Open stats"}
           className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
-          style={{ top: -55 }}
+          style={{ top: -65 }}
         >
           <img
             src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
