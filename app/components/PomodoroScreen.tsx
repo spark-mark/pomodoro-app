@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import AnimatedTimer from "./AnimatedTimer";
-import StatsPanel from "./StatsPanel";
+import { StatsPanelDragZone, StatsPanelScrollable } from "./StatsPanel";
 import TimerControls from "./TimerControls";
 import {
   DEFAULT_WEEKLY_GOAL_MINUTES,
@@ -12,6 +12,7 @@ import {
   type PomodoroState,
   type PomodoroStats,
 } from "./pomodoro-types";
+import type { SyncStatus } from "./useSync";
 
 export interface PomodoroScreenProps {
   mode: PomodoroMode;
@@ -33,12 +34,16 @@ export interface PomodoroScreenProps {
   currentSessionElapsed?: number;
   /** Simulated "now" timestamp (ms) used to position the timeline playhead. */
   simNow?: number;
+  /** Authenticated user's email, or null when signed out. */
+  userEmail?: string | null;
+  syncStatus?: SyncStatus;
   onPlay?: () => void;
   onPause?: () => void;
   onStop?: () => void;
   onSkip?: () => void;
   onOpenStats?: () => void;
   onCloseStats?: () => void;
+  onSignedIn?: () => void;
 }
 
 const DEFAULT_STATS: PomodoroStats = {
@@ -116,17 +121,32 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     currentSessionStart = null,
     currentSessionElapsed = 0,
     simNow,
+    userEmail = null,
+    syncStatus = "idle",
     onPlay,
     onPause,
     onStop,
     onSkip,
     onOpenStats,
     onCloseStats,
+    onSignedIn,
   } = props;
 
   const header = headerColors(mode);
   const tColor = timerColor(mode, state, expanded);
   const isFocus = mode === "focus";
+
+  /* ── Prevent iOS rubber-band overscroll revealing white gap ── */
+  useEffect(() => {
+    if (!fullscreen) return;
+    const handler = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-scrollable]")) return;
+      e.preventDefault();
+    };
+    document.addEventListener("touchmove", handler, { passive: false });
+    return () => document.removeEventListener("touchmove", handler);
+  }, [fullscreen]);
 
   /* ── Responsive scaling ── */
   const containerRef = useRef<HTMLDivElement>(null);
@@ -161,22 +181,18 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
   } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
+  const dragZoneRef = useRef<HTMLDivElement>(null);
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (e.button !== 0) return;
-      if (expanded) {
-        const panel = panelRef.current;
-        if (!panel) return;
-        const rect = panel.getBoundingClientRect();
-        if (e.clientY - rect.top > 30) return;
-      }
       const currentTop = expanded ? topExpanded : topCollapsed;
       dragRef.current = {
         startY: e.clientY,
         startTop: currentTop,
         pointerId: e.pointerId,
       };
-      panelRef.current?.setPointerCapture(e.pointerId);
+      dragZoneRef.current?.setPointerCapture(e.pointerId);
       setDragTop(currentTop);
     },
     [expanded, topExpanded, topCollapsed],
@@ -200,7 +216,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     (e: React.PointerEvent) => {
       const drag = dragRef.current;
       if (!drag) return;
-      panelRef.current?.releasePointerCapture(drag.pointerId);
+      dragZoneRef.current?.releasePointerCapture(drag.pointerId);
       dragRef.current = null;
 
       const finalTop = Math.max(
@@ -338,10 +354,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       <div
         ref={panelRef}
         className="absolute inset-x-0 flex flex-col bg-[#e6e1e0]"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
         style={{
           top: resolvedTop,
           height: resolvedHeight,
@@ -355,8 +367,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           transition: isDragging
             ? "none"
             : "top 500ms var(--ease-out), height 500ms var(--ease-out), border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out)",
-          touchAction: "none",
-          cursor: expanded ? "default" : "grab",
         }}
       >
         {/* Stats toggle — anchored to panel so it moves with drag */}
@@ -374,26 +384,44 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           />
         </button>
 
-        {/* Drag handle */}
-        <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing">
-          <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
+        {/* Drag zone: handle + timeline + daily stats — dragging anywhere here resizes the panel */}
+        <div
+          ref={dragZoneRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          className="shrink-0"
+          style={{ touchAction: "none", cursor: expanded ? "grab" : "grab" }}
+        >
+          {/* Drag handle bar */}
+          <div className="flex justify-center pt-[7px] pb-[7px] cursor-grab active:cursor-grabbing">
+            <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
+          </div>
+          <StatsPanelDragZone
+            stats={stats}
+            currentSessionStart={currentSessionStart}
+            currentSessionElapsed={currentSessionElapsed}
+            simNow={simNow}
+          />
         </div>
 
-        {/* Scrollable inner when expanded */}
+        {/* Scrollable rest of the stats */}
         <div
           className="flex-1 flex flex-col"
+          data-scrollable={expanded ? "" : undefined}
           style={{
             overflowY: expanded ? "auto" : "hidden",
             touchAction: expanded ? "pan-y" : "none",
           }}
         >
-          <StatsPanel
+          <StatsPanelScrollable
             stats={stats}
             weeklyGoalMinutes={weeklyGoalMinutes}
             carryoverMinutes={carryoverMinutes}
-            currentSessionStart={currentSessionStart}
-            currentSessionElapsed={currentSessionElapsed}
-            simNow={simNow}
+            userEmail={userEmail}
+            syncStatus={syncStatus}
+            onSignedIn={onSignedIn}
           />
         </div>
       </div>

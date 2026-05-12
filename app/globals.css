@@ -10,6 +10,14 @@
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
 }
 
+html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  background: #e6e1e0;
+}
+
 /* ── Pressable button interactions ── */
 .pressable {
   transition: transform 160ms var(--ease-out);

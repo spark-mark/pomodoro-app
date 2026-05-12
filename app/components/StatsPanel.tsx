@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import StatBox from "./StatBox";
+import { AccountSection } from "./AuthUI";
+import type { SyncStatus } from "./useSync";
 import {
   computeAdaptiveTarget,
   DEFAULT_WEEKLY_GOAL_MINUTES,
@@ -18,6 +20,9 @@ export interface StatsPanelProps {
   currentSessionStart?: number | null;
   currentSessionElapsed?: number;
   simNow?: number;
+  userEmail?: string | null;
+  syncStatus?: SyncStatus;
+  onSignedIn?: () => void;
 }
 
 const SECONDS_PER_DAY = 24 * 60 * 60;
@@ -339,16 +344,112 @@ function WeeklySection({
   );
 }
 
-export default function StatsPanel(props: StatsPanelProps) {
-  const {
-    stats,
-    weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
-    carryoverMinutes = 0,
-    currentSessionStart = null,
-    currentSessionElapsed = 0,
-    simNow,
-  } = props;
+export interface StatsPanelDragZoneProps {
+  stats: PomodoroStats;
+  currentSessionStart?: number | null;
+  currentSessionElapsed?: number;
+  simNow?: number;
+}
 
+export function StatsPanelDragZone({
+  stats,
+  currentSessionStart = null,
+  currentSessionElapsed = 0,
+  simNow,
+}: StatsPanelDragZoneProps) {
+  return (
+    <div className="px-[18px] pb-[12px]">
+      <MiniSessionTimeline
+        sessions={stats.todaySessions}
+        currentSessionStart={currentSessionStart}
+        currentSessionElapsed={currentSessionElapsed}
+        now={simNow ?? Date.now()}
+      />
+    </div>
+  );
+}
+
+/* ── Focus Log ── */
+
+function formatTime12(ms: number): string {
+  const d = new Date(ms);
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const suffix = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return `${h}:${m.toString().padStart(2, "0")} ${suffix}`;
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.round(seconds / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  const rem = m % 60;
+  return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
+}
+
+function FocusLog({ sessions }: { sessions: SessionEntry[] }) {
+  if (sessions.length === 0) return null;
+
+  const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
+
+  return (
+    <div className="flex flex-col gap-[8px]">
+      <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+        Focus Log
+      </p>
+      <div className="flex flex-col">
+        {sorted.map((s, i) => {
+          const endTime = s.startTime + s.durationSeconds * 1000;
+          const isCompleted = s.durationSeconds >= FOCUS_DURATION_SECONDS;
+          return (
+            <div key={`fl-${i}`} className="flex items-stretch">
+              {/* Timeline column */}
+              <div className="flex flex-col items-center w-[24px] shrink-0">
+                <div
+                  className="size-[8px] rounded-full mt-[6px] shrink-0"
+                  style={{
+                    backgroundColor: isCompleted ? "#545b7f" : "#a98461",
+                  }}
+                />
+                {i < sorted.length - 1 && (
+                  <div className="w-[1.5px] flex-1 bg-[#c2c9dc]/60" />
+                )}
+              </div>
+              {/* Content */}
+              <div className="flex items-center justify-between flex-1 min-w-0 pb-[14px] pl-[8px]">
+                <span className="text-[#545b7f] text-[13px] tracking-[-0.5px]">
+                  {formatTime12(s.startTime)} – {formatTime12(endTime)}
+                </span>
+                <span className="text-[#8f92a9] text-[13px] tracking-[-0.5px]">
+                  {formatDuration(s.durationSeconds)}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export interface StatsPanelScrollableProps {
+  stats: PomodoroStats;
+  weeklyGoalMinutes?: number;
+  carryoverMinutes?: number;
+  userEmail?: string | null;
+  syncStatus?: SyncStatus;
+  onSignedIn?: () => void;
+}
+
+export function StatsPanelScrollable({
+  stats,
+  weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
+  carryoverMinutes = 0,
+  userEmail = null,
+  syncStatus = "idle",
+  onSignedIn,
+}: StatsPanelScrollableProps) {
   const target = computeAdaptiveTarget(
     stats.weeklyFocusMinutes,
     weeklyGoalMinutes,
@@ -361,13 +462,6 @@ export default function StatsPanel(props: StatsPanelProps) {
 
   return (
     <div className="px-[18px] pb-[32px] flex flex-col gap-[24px]">
-      <MiniSessionTimeline
-        sessions={stats.todaySessions}
-        currentSessionStart={currentSessionStart}
-        currentSessionElapsed={currentSessionElapsed}
-        now={simNow ?? Date.now()}
-      />
-
       {/* ── Daily ── */}
       <div className="grid grid-cols-2 gap-[10px]">
         <div className="flex flex-col gap-[8px] items-start">
@@ -431,6 +525,33 @@ export default function StatsPanel(props: StatsPanelProps) {
           <YearHeatmap />
         </div>
       </div>
+
+      {/* ── Focus Log ── */}
+      <FocusLog sessions={stats.todaySessions} />
+
+      {/* ── Account ── */}
+      <AccountSection email={userEmail} syncStatus={syncStatus} onSignedIn={onSignedIn} />
     </div>
+  );
+}
+
+export default function StatsPanel(props: StatsPanelProps) {
+  return (
+    <>
+      <StatsPanelDragZone
+        stats={props.stats}
+        currentSessionStart={props.currentSessionStart}
+        currentSessionElapsed={props.currentSessionElapsed}
+        simNow={props.simNow}
+      />
+      <StatsPanelScrollable
+        stats={props.stats}
+        weeklyGoalMinutes={props.weeklyGoalMinutes}
+        carryoverMinutes={props.carryoverMinutes}
+        userEmail={props.userEmail}
+        syncStatus={props.syncStatus}
+        onSignedIn={props.onSignedIn}
+      />
+    </>
   );
 }

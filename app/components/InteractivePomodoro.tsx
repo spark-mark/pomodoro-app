@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import PomodoroScreen from "./PomodoroScreen";
+import { useSync } from "./useSync";
 import {
   DEFAULT_WEEKLY_GOAL_MINUTES,
   FOCUS_DURATION_SECONDS,
@@ -197,6 +198,19 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const simNowRef = useRef<number>(Date.now());
   const [simNow, setSimNow] = useState<number>(Date.now());
 
+  const sync = useSync();
+  const persistedRef = useRef<Persisted>({
+    byDate: {},
+    totalPomos: 0,
+    totalFocusSeconds: 0,
+  });
+  const goalsRef = useRef<PersistedGoals>({
+    weeklyGoalMinutes: DEFAULT_WEEKLY_GOAL_MINUTES,
+    carryoverMinutes: 0,
+    lastWeekKey: "",
+  });
+  const lastSyncedUserRef = useRef<string | null>(null);
+
   useEffect(() => {
     const data = loadPersisted(storageKey);
     setPersisted(data);
@@ -225,8 +239,69 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   }, [storageKey]);
 
   useEffect(() => {
+    persistedRef.current = persisted;
     savePersisted(storageKey, persisted);
   }, [persisted, storageKey]);
+
+  useEffect(() => {
+    goalsRef.current = goals;
+  }, [goals]);
+
+  const syncRef = useRef(sync);
+  syncRef.current = sync;
+
+  useEffect(() => {
+    if (!sync.authed || !sync.email) return;
+    if (lastSyncedUserRef.current === sync.email) return;
+    lastSyncedUserRef.current = sync.email;
+
+    (async () => {
+      const s = syncRef.current;
+      const localPersisted = persistedRef.current;
+      const localGoals = goalsRef.current;
+
+      const localSessions: {
+        dateKey: string;
+        startTime: number;
+        durationSeconds: number;
+        isCompleted: boolean;
+      }[] = [];
+      for (const [dateKey, day] of Object.entries(localPersisted.byDate)) {
+        const sessions = day.sessions ?? [];
+        for (let i = 0; i < sessions.length; i++) {
+          const se = sessions[i];
+          localSessions.push({
+            dateKey,
+            startTime: se.startTime,
+            durationSeconds: se.durationSeconds,
+            isCompleted: se.durationSeconds >= FOCUS_DURATION_SECONDS,
+          });
+        }
+      }
+
+      if (localSessions.length > 0) {
+        await s.bulkPushSessions(localSessions);
+      }
+      if (localGoals.lastWeekKey) {
+        s.pushGoals({
+          weeklyGoalMinutes: localGoals.weeklyGoalMinutes,
+          carryoverMinutes: localGoals.carryoverMinutes,
+          lastWeekKey: localGoals.lastWeekKey,
+        });
+      }
+
+      const result = await s.sync();
+      if (!result) return;
+      setPersisted(result.persisted);
+      if (result.goals && result.goals.lastWeekKey) {
+        setGoals(result.goals);
+      }
+    })();
+  }, [sync.authed, sync.email]);
+
+  useEffect(() => {
+    if (!sync.authed) lastSyncedUserRef.current = null;
+  }, [sync.authed]);
 
   const addFocusSeconds = useCallback((seconds: number) => {
     if (seconds <= 0) return;
@@ -269,8 +344,8 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const completeFocusSession = useCallback(() => {
     const startedAt = sessionStartRef.current;
     sessionStartRef.current = null;
+    const key = todayKey();
     setPersisted((prev) => {
-      const key = todayKey();
       const day = prev.byDate[key] ?? {
         pomos: 0,
         focusSeconds: 0,
@@ -295,7 +370,15 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
         totalPomos: prev.totalPomos + 1,
       };
     });
-  }, []);
+    if (startedAt !== null) {
+      sync.pushSession({
+        dateKey: key,
+        startTime: startedAt,
+        durationSeconds: FOCUS_DURATION_SECONDS,
+        isCompleted: true,
+      });
+    }
+  }, [sync]);
 
   const lastTickRef = useRef<number | null>(null);
   useEffect(() => {
@@ -345,24 +428,38 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     if (mode === "focus" && sessionStartRef.current !== null) {
       const elapsed = modeDuration("focus") - remaining;
       if (elapsed > 0) {
+        const startedAt = sessionStartRef.current;
         addSession({
-          startTime: sessionStartRef.current,
+          startTime: startedAt,
           durationSeconds: elapsed,
+        });
+        sync.pushSession({
+          dateKey: todayKey(),
+          startTime: startedAt,
+          durationSeconds: elapsed,
+          isCompleted: false,
         });
       }
       sessionStartRef.current = null;
     }
     setState("default");
     setRemaining(modeDuration(mode));
-  }, [mode, remaining, addSession]);
+  }, [mode, remaining, addSession, sync]);
 
   const handleSkip = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
       const elapsed = modeDuration("focus") - remaining;
       if (elapsed > 0) {
+        const startedAt = sessionStartRef.current;
         addSession({
-          startTime: sessionStartRef.current,
+          startTime: startedAt,
           durationSeconds: elapsed,
+        });
+        sync.pushSession({
+          dateKey: todayKey(),
+          startTime: startedAt,
+          durationSeconds: elapsed,
+          isCompleted: false,
         });
       }
       sessionStartRef.current = null;
@@ -370,7 +467,12 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     setMode("focus");
     setState("default");
     setRemaining(modeDuration("focus"));
-  }, [mode, remaining, addSession]);
+  }, [mode, remaining, addSession, sync]);
+
+  const handleSignedIn = useCallback(async () => {
+    await sync.refreshSession();
+    lastSyncedUserRef.current = null;
+  }, [sync]);
 
   const stats = statsFromPersisted(persisted);
 
@@ -392,12 +494,15 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       currentSessionStart={sessionStartRef.current}
       currentSessionElapsed={currentSessionElapsed}
       simNow={simNow}
+      userEmail={sync.email}
+      syncStatus={sync.status}
       onPlay={handlePlay}
       onPause={handlePause}
       onStop={handleStop}
       onSkip={handleSkip}
       onOpenStats={() => setShowStats(true)}
       onCloseStats={() => setShowStats(false)}
+      onSignedIn={handleSignedIn}
     />
   );
 }
