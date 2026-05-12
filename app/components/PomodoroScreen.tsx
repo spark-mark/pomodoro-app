@@ -72,8 +72,6 @@ const D_TIMER_PT_COLLAPSED = 120;
 const D_TIMER_PT_EXPANDED = 38;
 const D_TIMER_PB_COLLAPSED = 65;
 const D_TIMER_PB_EXPANDED = 12;
-const D_STATS_BTN_COLLAPSED = 479;
-const D_STATS_BTN_EXPANDED = 75;
 
 /* ── Helpers ── */
 
@@ -336,28 +334,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         </div>
       </div>
 
-      {/* ── Stats toggle button ── */}
-      <button
-        type="button"
-        onClick={expanded ? onCloseStats : onOpenStats}
-        aria-label={expanded ? "Close stats" : "Open stats"}
-        className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px]"
-        style={{
-          top: fullscreen
-            ? `calc(${expanded ? Math.round(D_STATS_BTN_EXPANDED * s) : Math.round(D_STATS_BTN_COLLAPSED * s)}px + env(safe-area-inset-top, 0px))`
-            : expanded
-              ? Math.round(D_STATS_BTN_EXPANDED * s)
-              : Math.round(D_STATS_BTN_COLLAPSED * s),
-          transition: "top 500ms var(--ease-out), opacity 300ms var(--ease-out)",
-        }}
-      >
-        <img
-          src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
-          alt=""
-          className="size-[31px]"
-        />
-      </button>
-
       {/* ── Stats area ── */}
       <div
         ref={panelRef}
@@ -383,6 +359,21 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           cursor: expanded ? "default" : "grab",
         }}
       >
+        {/* Stats toggle — anchored to panel so it moves with drag */}
+        <button
+          type="button"
+          onClick={expanded ? onCloseStats : onOpenStats}
+          aria-label={expanded ? "Close stats" : "Open stats"}
+          className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
+          style={{ top: -55 }}
+        >
+          <img
+            src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
+            alt=""
+            className="size-[31px]"
+          />
+        </button>
+
         {/* Drag handle */}
         <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing">
           <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
