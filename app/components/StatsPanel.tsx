@@ -311,7 +311,7 @@ function WeeklySection({
   const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
   return (
-    <div className="flex flex-col gap-[12px]">
+    <div className="bg-[#cec1bf] rounded-[18px] p-[14px] flex flex-col gap-[12px]">
       {/* Header row: Daily Average + week nav */}
       <div className="flex items-end justify-between">
         <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
@@ -481,43 +481,45 @@ export function StatsPanelDragZone({
         currentSessionElapsed={currentSessionElapsed}
         now={simNow ?? Date.now()}
       />
-      <div className="grid grid-cols-2 gap-[10px]">
-        <div className="flex flex-col gap-[8px] items-start">
-          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
-            Today&apos;s Pomos
-          </p>
-          <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
-            {totalSquares > 0 ? (
-              <>
-                {Array.from({ length: stats.todayPomos }).map((_, i) => (
-                  <div
-                    key={`s-${i}`}
-                    className="size-[18px] rounded-[4px] bg-[#545b7f]"
-                  />
-                ))}
-                {Array.from({ length: remainingPomos }).map((_, i) => (
-                  <div
-                    key={`d-${i}`}
-                    className="size-[18px] rounded-[4px]"
-                    style={{
-                      border: "1.5px dashed #a98461",
-                      background: "transparent",
-                    }}
-                  />
-                ))}
-              </>
-            ) : (
-              <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
-                None
-              </p>
-            )}
+      <div className="bg-[#cec1bf] rounded-[18px] p-[14px]">
+        <div className="grid grid-cols-2 gap-[10px]">
+          <div className="flex flex-col gap-[8px] items-start">
+            <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+              Today&apos;s Pomos
+            </p>
+            <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
+              {totalSquares > 0 ? (
+                <>
+                  {Array.from({ length: stats.todayPomos }).map((_, i) => (
+                    <div
+                      key={`s-${i}`}
+                      className="size-[18px] rounded-[4px] bg-[#545b7f]"
+                    />
+                  ))}
+                  {Array.from({ length: remainingPomos }).map((_, i) => (
+                    <div
+                      key={`d-${i}`}
+                      className="size-[18px] rounded-[4px]"
+                      style={{
+                        border: "1.5px dashed #a98461",
+                        background: "transparent",
+                      }}
+                    />
+                  ))}
+                </>
+              ) : (
+                <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
+                  None
+                </p>
+              )}
+            </div>
           </div>
+          <StatBox
+            title="Today's Focus"
+            value={stats.todayFocusMinutes}
+            format="time"
+          />
         </div>
-        <StatBox
-          title="Today's Focus"
-          value={stats.todayFocusMinutes}
-          format="time"
-        />
       </div>
     </div>
   );
@@ -558,7 +560,7 @@ function FocusLog({ sessions, onEdit, onDelete }: FocusLogProps) {
   const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
 
   return (
-    <div className="flex flex-col gap-[8px]">
+    <div className="bg-[#cec1bf] rounded-[18px] p-[14px] flex flex-col gap-[8px]">
       <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
         Focus Log
       </p>
@@ -715,7 +717,7 @@ export function StatsPanelScrollable({
       />
 
       {/* ── Lifetime ── */}
-      <div className="flex flex-col gap-[16px]">
+      <div className="bg-[#cec1bf] rounded-[18px] p-[14px] flex flex-col gap-[16px]">
         <div className="grid grid-cols-2 gap-[10px]">
           <StatBox title="Total Pomos" value={stats.totalPomos} />
           <StatBox
