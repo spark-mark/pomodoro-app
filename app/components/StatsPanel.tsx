@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from "react";
 import StatBox from "./StatBox";
-import { AccountSection } from "./AuthUI";
 import type { SyncStatus } from "./useSync";
 import {
   computeAdaptiveTarget,
@@ -735,8 +734,6 @@ export function StatsPanelScrollable({
       {/* ── Focus Log ── */}
       <FocusLog sessions={stats.todaySessions} onEdit={onEditSession} onDelete={onDeleteSession} />
 
-      {/* ── Account ── */}
-      <AccountSection email={userEmail} syncStatus={syncStatus} onSignedIn={onSignedIn} />
     </div>
   );
 }

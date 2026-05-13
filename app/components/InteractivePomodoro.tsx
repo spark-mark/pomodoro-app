@@ -494,7 +494,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const handleStop = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
       const elapsed = modeDuration("focus", settings) - remaining;
-      if (elapsed > 0) {
+      if (elapsed > 30) {
         const startedAt = sessionStartRef.current;
         addSession({
           startTime: startedAt,
@@ -516,7 +516,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const handleSkip = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
       const elapsed = modeDuration("focus", settings) - remaining;
-      if (elapsed > 0) {
+      if (elapsed > 30) {
         const startedAt = sessionStartRef.current;
         addSession({
           startTime: startedAt,

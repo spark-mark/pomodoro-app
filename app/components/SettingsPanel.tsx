@@ -1,6 +1,8 @@
 "use client";
 
 import { type PomodoroSettings, DEFAULT_SETTINGS } from "./pomodoro-types";
+import { AccountSection } from "./AuthUI";
+import type { SyncStatus } from "./useSync";
 
 interface SettingRowProps {
   label: string;
@@ -50,9 +52,12 @@ function formatHour(h: number): string {
 export interface SettingsPanelProps {
   settings: PomodoroSettings;
   onChange: (settings: PomodoroSettings) => void;
+  userEmail?: string | null;
+  syncStatus?: SyncStatus;
+  onSignedIn?: () => void;
 }
 
-export default function SettingsPanel({ settings, onChange }: SettingsPanelProps) {
+export default function SettingsPanel({ settings, onChange, userEmail, syncStatus, onSignedIn }: SettingsPanelProps) {
   const update = <K extends keyof PomodoroSettings>(key: K, value: PomodoroSettings[K]) => {
     onChange({ ...settings, [key]: value });
   };
@@ -118,6 +123,9 @@ export default function SettingsPanel({ settings, onChange }: SettingsPanelProps
         </div>
       </div>
 
+      <div className="mt-[20px]">
+        <AccountSection email={userEmail ?? null} syncStatus={syncStatus} onSignedIn={onSignedIn} />
+      </div>
     </div>
   );
 }

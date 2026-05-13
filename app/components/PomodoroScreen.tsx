@@ -398,27 +398,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
         </div>
 
-        {/* Controls — play/pause/stop fade out when expanded */}
-        <div
-          className={isDragging ? "mt-auto" : "fade-transition mt-auto"}
-          style={{
-            opacity: 1 - dragProgress,
-            transform: `translateY(${dragProgress * 20}px)`,
-            pointerEvents: dragProgress > 0.5 ? "none" : "auto",
-          }}
-        >
-          <TimerControls
-            mode={mode}
-            state={state}
-            expanded={expanded}
-            onPlay={onPlay}
-            onPause={onPause}
-            onStop={onStop}
-            onSkip={onSkip}
-            onOpenStats={onOpenStats}
-            onCloseStats={onCloseStats}
-          />
-        </div>
       </div>
 
       {/* ── Stats area ── */}
@@ -441,6 +420,28 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             : "top 500ms var(--ease-out), height 500ms var(--ease-out), border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out)",
         }}
       >
+        {/* Controls — anchored to panel, fade with drag */}
+        <div
+          className={`absolute left-[20px] right-[20px] ${isDragging ? "" : "fade-transition"} pointer-events-auto`}
+          style={{
+            top: -65,
+            opacity: 1 - dragProgress,
+            pointerEvents: dragProgress > 0.5 ? "none" : "auto",
+          }}
+        >
+          <TimerControls
+            mode={mode}
+            state={state}
+            expanded={expanded}
+            onPlay={onPlay}
+            onPause={onPause}
+            onStop={onStop}
+            onSkip={onSkip}
+            onOpenStats={onOpenStats}
+            onCloseStats={onCloseStats}
+          />
+        </div>
+
         {/* Top-right button — stats toggle on desktop, settings on mobile */}
         {isMobile ? (
           <button
@@ -515,6 +516,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             <SettingsPanel
               settings={settings}
               onChange={(s) => onSettingsChange?.(s)}
+              userEmail={userEmail}
+              syncStatus={syncStatus}
+              onSignedIn={onSignedIn}
             />
           ) : (
             <StatsPanelScrollable
