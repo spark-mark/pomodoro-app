@@ -3,15 +3,19 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import AnimatedTimer from "./AnimatedTimer";
 import { StatsPanelDragZone, StatsPanelScrollable } from "./StatsPanel";
+import SettingsPanel from "./SettingsPanel";
 import TimerControls from "./TimerControls";
 import {
+  DEFAULT_SETTINGS,
   DEFAULT_WEEKLY_GOAL_MINUTES,
   formatTimer,
   modeDuration,
   type PomodoroMode,
   type PomodoroState,
   type PomodoroStats,
+  type SessionEntry,
 } from "./pomodoro-types";
+import type { PomodoroSettings } from "./pomodoro-types";
 import type { SyncStatus } from "./useSync";
 
 export interface PomodoroScreenProps {
@@ -41,6 +45,10 @@ export interface PomodoroScreenProps {
   onPause?: () => void;
   onStop?: () => void;
   onSkip?: () => void;
+  settings?: PomodoroSettings;
+  onSettingsChange?: (s: PomodoroSettings) => void;
+  onEditSession?: (original: SessionEntry, updated: SessionEntry) => void;
+  onDeleteSession?: (session: SessionEntry) => void;
   onOpenStats?: () => void;
   onCloseStats?: () => void;
   onSignedIn?: () => void;
@@ -53,17 +61,14 @@ const DEFAULT_STATS: PomodoroStats = {
   totalFocusMinutes: 6755,
   todaySessions: [],
   weeklyFocusMinutes: [60, 120, 90, 180, 75, 240, 155],
+  byDate: {},
 };
 
 /* ── Background gradients ── */
 
-// Collapsed: radial bloom anchored at bottom of the timer area (~584px),
-// sized to match the Figma radialGradient matrix transform exactly.
 const BOTTOM_BLOOM =
   "radial-gradient(663px 394px at 200px 584px, rgba(198,92,92,1) 0%, rgba(245,134,94,0.726) 29.3%, rgba(220,129,51,0.598) 41.8%, rgba(196,124,8,0.469) 54.3%, rgba(196,152,68,0.235) 77.2%, rgba(196,180,128,0) 100%)";
 
-// Only 2 layers needed — one per mode. The stats panel sliding up/down
-// naturally reveals/hides the bloom. No collapsed vs expanded crossfade.
 const FOCUS_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #e1e7f6 0%, #e1e7f6 100%)`;
 const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #31487b 0%, #31487b 100%)`;
 
@@ -127,10 +132,29 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     onPause,
     onStop,
     onSkip,
+    settings = DEFAULT_SETTINGS,
+    onSettingsChange,
+    onEditSession,
+    onDeleteSession,
     onOpenStats,
     onCloseStats,
     onSignedIn,
   } = props;
+
+  const [showSettings, setShowSettings] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(pointer: coarse)");
+    setIsMobile(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  useEffect(() => {
+    if (!expanded) setShowSettings(false);
+  }, [expanded]);
 
   const header = headerColors(mode);
   const tColor = timerColor(mode, state, expanded);
@@ -141,7 +165,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     if (!fullscreen) return;
     const handler = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
-      if (target?.closest("[data-scrollable]")) return;
+      if (target?.closest("[data-scrollable], [data-scrollable-x]")) return;
       e.preventDefault();
     };
     document.addEventListener("touchmove", handler, { passive: false });
@@ -182,57 +206,92 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
   const dragZoneRef = useRef<HTMLDivElement>(null);
+  const dragDirectionRef = useRef<"vertical" | "horizontal" | null>(null);
+  const DIRECTION_THRESHOLD = 8;
 
-  const handlePointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (e.button !== 0) return;
-      const currentTop = expanded ? topExpanded : topCollapsed;
-      dragRef.current = {
-        startY: e.clientY,
-        startTop: currentTop,
-        pointerId: e.pointerId,
-      };
-      dragZoneRef.current?.setPointerCapture(e.pointerId);
-      setDragTop(currentTop);
-    },
-    [expanded, topExpanded, topCollapsed],
-  );
+  useEffect(() => {
+    const el = dragZoneRef.current;
+    if (!el) return;
 
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      const dy = e.clientY - drag.startY;
+    let startX = 0;
+    let startY = 0;
+    let startTop = 0;
+    let direction: "vertical" | "horizontal" | null = null;
+    let active = false;
+
+    const onTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("[data-scrollable-x]")) {
+        active = false;
+        return;
+      }
+      const t = e.touches[0];
+      startX = t.clientX;
+      startY = t.clientY;
+      startTop = expanded ? topExpanded : topCollapsed;
+      direction = null;
+      active = true;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!active) return;
+      const t = e.touches[0];
+      const dx = Math.abs(t.clientX - startX);
+      const dy = Math.abs(t.clientY - startY);
+
+      if (!direction) {
+        if (dx < DIRECTION_THRESHOLD && dy < DIRECTION_THRESHOLD) return;
+        direction = dx > dy ? "horizontal" : "vertical";
+        if (direction === "vertical") {
+          setDragTop(startTop);
+        }
+      }
+
+      if (direction === "horizontal") return;
+
+      e.preventDefault();
       const newTop = Math.max(
         topExpanded,
-        Math.min(topCollapsed, drag.startTop + dy),
+        Math.min(topCollapsed, startTop + (t.clientY - startY)),
       );
       setDragTop(newTop);
-    },
-    [topExpanded, topCollapsed],
-  );
+    };
 
-  const handlePointerUp = useCallback(
-    (e: React.PointerEvent) => {
-      const drag = dragRef.current;
-      if (!drag) return;
-      dragZoneRef.current?.releasePointerCapture(drag.pointerId);
-      dragRef.current = null;
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!active) return;
+      active = false;
 
+      if (direction !== "vertical") {
+        direction = null;
+        return;
+      }
+
+      const t = e.changedTouches[0];
       const finalTop = Math.max(
         topExpanded,
-        Math.min(topCollapsed, drag.startTop + (e.clientY - drag.startY)),
+        Math.min(topCollapsed, startTop + (t.clientY - startY)),
       );
       setDragTop(null);
+      direction = null;
 
       if (finalTop < topMidpoint) {
         if (!expanded) onOpenStats?.();
       } else {
         if (expanded) onCloseStats?.();
       }
-    },
-    [expanded, topExpanded, topCollapsed, topMidpoint, onOpenStats, onCloseStats],
-  );
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+    };
+  }, [expanded, topExpanded, topCollapsed, topMidpoint, onOpenStats, onCloseStats]);
 
   const resolvedTop = isDragging
     ? dragTop
@@ -241,14 +300,23 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       : topCollapsed;
   const resolvedHeight = H - resolvedTop;
 
+  const dragRange = topCollapsed - topExpanded;
+  const dragProgress =
+    dragRange > 0
+      ? Math.max(0, Math.min(1, (topCollapsed - resolvedTop) / dragRange))
+      : expanded
+        ? 1
+        : 0;
+
   return (
     <div
       ref={containerRef}
       className={
         fullscreen
-          ? "relative w-full h-dvh overflow-hidden bg-[#e6e1e0]"
-          : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px] bg-[#e6e1e0]"
+          ? "relative w-full h-dvh overflow-hidden"
+          : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px]"
       }
+      style={{ backgroundColor: "#e6e1e0" }}
     >
       {/* ── Background layers (cross-fade by mode only) ── */}
       <div
@@ -262,33 +330,35 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
       {/* ── Timer area ── */}
       <div
-        className="absolute inset-x-0 top-0 timer-area-transition px-[20px] flex flex-col pointer-events-none"
+        className={`absolute inset-x-0 top-0 px-[20px] flex flex-col pointer-events-none ${isDragging ? "" : "timer-area-transition"}`}
         style={{
-          height: expanded
-            ? Math.round(D_TIMER_H_EXPANDED * s)
-            : Math.round(D_TIMER_H_COLLAPSED * s),
+          height: Math.round(
+            (D_TIMER_H_COLLAPSED + (D_TIMER_H_EXPANDED - D_TIMER_H_COLLAPSED) * dragProgress) * s,
+          ),
           paddingTop: fullscreen
-            ? `calc(${expanded ? Math.round(D_TIMER_PT_EXPANDED * s) : Math.round(D_TIMER_PT_COLLAPSED * s)}px + env(safe-area-inset-top, 0px))`
-            : expanded
-              ? Math.round(D_TIMER_PT_EXPANDED * s)
-              : Math.round(D_TIMER_PT_COLLAPSED * s),
-          paddingBottom: expanded
-            ? Math.round(D_TIMER_PB_EXPANDED * s)
-            : Math.round(D_TIMER_PB_COLLAPSED * s),
+            ? `calc(${Math.round(
+                (D_TIMER_PT_COLLAPSED + (D_TIMER_PT_EXPANDED - D_TIMER_PT_COLLAPSED) * dragProgress) * s,
+              )}px + env(safe-area-inset-top, 0px))`
+            : Math.round(
+                (D_TIMER_PT_COLLAPSED + (D_TIMER_PT_EXPANDED - D_TIMER_PT_COLLAPSED) * dragProgress) * s,
+              ),
+          paddingBottom: Math.round(
+            (D_TIMER_PB_COLLAPSED + (D_TIMER_PB_EXPANDED - D_TIMER_PB_COLLAPSED) * dragProgress) * s,
+          ),
         }}
       >
         {/* Header + timer text */}
         <div className="flex flex-col items-center w-full drop-shadow-[0px_4px_22.8px_rgba(255,255,255,0.25)] relative">
           <div
             className="flex items-center justify-center w-full"
-            style={{ gap: expanded ? 5 : 6 }}
+            style={{ gap: 6 - dragProgress }}
           >
             <p
-              className="text-transition leading-none whitespace-nowrap [text-shadow:0px_0px_14.9px_rgba(194,201,220,0.67)]"
+              className={`${isDragging ? "" : "text-transition"} leading-none whitespace-nowrap [text-shadow:0px_0px_14.9px_rgba(194,201,220,0.67)]`}
               style={{
                 color: header.active,
-                fontSize: expanded ? 16 : 20,
-                letterSpacing: expanded ? "-0.96px" : "-1.2px",
+                fontSize: 20 - 4 * dragProgress,
+                letterSpacing: `${-1.2 + 0.24 * dragProgress}px`,
               }}
             >
               {header.activeLabel}
@@ -296,18 +366,18 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             <img
               src="/arrow.svg"
               alt=""
-              className="text-transition"
+              className={isDragging ? "" : "text-transition"}
               style={{
-                height: expanded ? 12 : 16,
-                width: expanded ? 12 : 15,
+                height: 16 - 4 * dragProgress,
+                width: 15 - 3 * dragProgress,
               }}
             />
             <p
-              className="text-transition leading-none whitespace-nowrap"
+              className={`${isDragging ? "" : "text-transition"} leading-none whitespace-nowrap`}
               style={{
                 color: header.inactive,
-                fontSize: expanded ? 16 : 20,
-                letterSpacing: expanded ? "-0.96px" : "-1.2px",
+                fontSize: 20 - 4 * dragProgress,
+                letterSpacing: `${-1.2 + 0.24 * dragProgress}px`,
               }}
             >
               {header.inactiveLabel}
@@ -315,12 +385,12 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           </div>
 
           <div
-            className="text-transition leading-none text-center w-full"
+            className={`${isDragging ? "" : "text-transition"} leading-none text-center w-full`}
             style={{
               color: tColor,
-              fontSize: expanded ? 44 : 96,
-              letterSpacing: expanded ? "-1.32px" : "-2.88px",
-              marginTop: expanded ? 6 : 16,
+              fontSize: 96 - 52 * dragProgress,
+              letterSpacing: `${-2.88 + 1.56 * dragProgress}px`,
+              marginTop: 16 - 10 * dragProgress,
             }}
           >
             <AnimatedTimer text={formatTimer(remaining)} />
@@ -330,10 +400,11 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
         {/* Controls — play/pause/stop fade out when expanded */}
         <div
-          className="fade-transition mt-auto"
+          className={isDragging ? "mt-auto" : "fade-transition mt-auto"}
           style={{
-            opacity: expanded ? 0 : 1,
-            pointerEvents: expanded ? "none" : "auto",
+            opacity: 1 - dragProgress,
+            transform: `translateY(${dragProgress * 20}px)`,
+            pointerEvents: dragProgress > 0.5 ? "none" : "auto",
           }}
         >
           <TimerControls
@@ -353,10 +424,11 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       {/* ── Stats area ── */}
       <div
         ref={panelRef}
-        className="absolute inset-x-0 flex flex-col bg-[#e6e1e0]"
+        className="absolute inset-x-0 flex flex-col"
         style={{
           top: resolvedTop,
           height: resolvedHeight,
+          backgroundColor: "#e6e1e0",
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           border: "0.5px solid rgba(133,114,114,0.15)",
@@ -369,30 +441,50 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             : "top 500ms var(--ease-out), height 500ms var(--ease-out), border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out)",
         }}
       >
-        {/* Stats toggle — anchored to panel so it moves with drag */}
-        <button
-          type="button"
-          onClick={expanded ? onCloseStats : onOpenStats}
-          aria-label={expanded ? "Close stats" : "Open stats"}
-          className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
-          style={{ top: -65 }}
-        >
-          <img
-            src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
-            alt=""
-            className="size-[31px]"
-          />
-        </button>
+        {/* Top-right button — stats toggle on desktop, settings on mobile */}
+        {isMobile ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (!expanded) {
+                onOpenStats?.();
+                setShowSettings(true);
+              } else if (showSettings) {
+                setShowSettings(false);
+              } else {
+                setShowSettings(true);
+              }
+            }}
+            aria-label="Settings"
+            className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
+            style={{ top: -65 }}
+          >
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke={showSettings && expanded ? "#545b7f" : "#8f92a9"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={expanded ? onCloseStats : onOpenStats}
+            aria-label={expanded ? "Close stats" : "Open stats"}
+            className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
+            style={{ top: -65 }}
+          >
+            <img
+              src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
+              alt=""
+              className="size-[31px]"
+            />
+          </button>
+        )}
 
         {/* Drag zone: handle + timeline + daily stats — dragging anywhere here resizes the panel */}
         <div
           ref={dragZoneRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerUp}
           className="shrink-0"
-          style={{ touchAction: "none", cursor: expanded ? "grab" : "grab" }}
+          style={{ cursor: "grab" }}
         >
           {/* Drag handle bar */}
           <div className="flex justify-center pt-[7px] pb-[7px] cursor-grab active:cursor-grabbing">
@@ -403,10 +495,11 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             currentSessionStart={currentSessionStart}
             currentSessionElapsed={currentSessionElapsed}
             simNow={simNow}
+            focusDurationMinutes={settings.focusDurationMinutes}
           />
         </div>
 
-        {/* Scrollable rest of the stats */}
+        {/* Scrollable rest of the stats / settings */}
         <div
           className="flex-1 flex flex-col"
           data-scrollable={expanded ? "" : undefined}
@@ -415,14 +508,24 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             touchAction: expanded ? "pan-y" : "none",
           }}
         >
-          <StatsPanelScrollable
-            stats={stats}
-            weeklyGoalMinutes={weeklyGoalMinutes}
-            carryoverMinutes={carryoverMinutes}
-            userEmail={userEmail}
-            syncStatus={syncStatus}
-            onSignedIn={onSignedIn}
-          />
+          {showSettings ? (
+            <SettingsPanel
+              settings={settings}
+              onChange={(s) => onSettingsChange?.(s)}
+            />
+          ) : (
+            <StatsPanelScrollable
+              stats={stats}
+              weeklyGoalMinutes={weeklyGoalMinutes}
+              carryoverMinutes={carryoverMinutes}
+              userEmail={userEmail}
+              syncStatus={syncStatus}
+              onSignedIn={onSignedIn}
+              settings={settings}
+              onEditSession={onEditSession}
+              onDeleteSession={onDeleteSession}
+            />
+          )}
         </div>
       </div>
     </div>

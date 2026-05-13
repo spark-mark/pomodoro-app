@@ -5,9 +5,11 @@ import PomodoroScreen from "./PomodoroScreen";
 import { useSync } from "./useSync";
 import {
   DEFAULT_WEEKLY_GOAL_MINUTES,
+  DEFAULT_SETTINGS,
   FOCUS_DURATION_SECONDS,
   modeDuration,
   type PomodoroMode,
+  type PomodoroSettings,
   type PomodoroState,
   type PomodoroStats,
   type SessionEntry,
@@ -15,6 +17,7 @@ import {
 
 const STORAGE_KEY = "pomodoro-mobile.v1";
 const GOALS_STORAGE_KEY = "pomodoro-goals.v1";
+const SETTINGS_STORAGE_KEY = "pomodoro-settings.v1";
 
 interface PersistedGoals {
   weeklyGoalMinutes: number;
@@ -165,6 +168,7 @@ function statsFromPersisted(p: Persisted): PomodoroStats {
     totalFocusMinutes: Math.floor(p.totalFocusSeconds / 60),
     todaySessions: day.sessions ?? [],
     weeklyFocusMinutes: weeklyFocusMinutesFromByDate(p.byDate),
+    byDate: p.byDate,
   };
 }
 
@@ -193,6 +197,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     lastWeekKey: "",
   });
   const [showStats, setShowStats] = useState<boolean>(false);
+  const [settings, setSettings] = useState<PomodoroSettings>(DEFAULT_SETTINGS);
 
   const sessionStartRef = useRef<number | null>(null);
   const simNowRef = useRef<number>(Date.now());
@@ -236,7 +241,33 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     }
     if (nextGoals !== loadedGoals) saveGoal(nextGoals);
     setGoals(nextGoals);
+
+    try {
+      const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+      if (raw) {
+        const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) as Partial<PomodoroSettings> };
+        setSettings(loaded);
+        setRemaining(modeDuration("focus", loaded));
+      }
+    } catch { /* ignore */ }
   }, [storageKey]);
+
+  const handleSettingsChange = useCallback((next: PomodoroSettings) => {
+    setSettings(next);
+    try {
+      window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(next));
+    } catch { /* ignore */ }
+    setGoals((prev) => ({
+      ...prev,
+      weeklyGoalMinutes: next.dailyGoalHours * 60 * 7,
+    }));
+    setState((s) => {
+      if (s === "default") {
+        setRemaining(modeDuration(mode, next));
+      }
+      return s;
+    });
+  }, [mode]);
 
   useEffect(() => {
     persistedRef.current = persisted;
@@ -357,7 +388,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
               ...(day.sessions ?? []),
               {
                 startTime: startedAt,
-                durationSeconds: FOCUS_DURATION_SECONDS,
+                durationSeconds: settings.focusDurationMinutes * 60,
               },
             ]
           : (day.sessions ?? []);
@@ -374,7 +405,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       sync.pushSession({
         dateKey: key,
         startTime: startedAt,
-        durationSeconds: FOCUS_DURATION_SECONDS,
+        durationSeconds: settings.focusDurationMinutes * 60,
         isCompleted: true,
       });
     }
@@ -407,7 +438,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
           const nextMode: PomodoroMode = mode === "focus" ? "break" : "focus";
           setMode(nextMode);
           setState("default");
-          return modeDuration(nextMode);
+          return modeDuration(nextMode, settings);
         }
         return next;
       });
@@ -426,7 +457,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
 
   const handleStop = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
-      const elapsed = modeDuration("focus") - remaining;
+      const elapsed = modeDuration("focus", settings) - remaining;
       if (elapsed > 0) {
         const startedAt = sessionStartRef.current;
         addSession({
@@ -443,12 +474,12 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       sessionStartRef.current = null;
     }
     setState("default");
-    setRemaining(modeDuration(mode));
+    setRemaining(modeDuration(mode, settings));
   }, [mode, remaining, addSession, sync]);
 
   const handleSkip = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
-      const elapsed = modeDuration("focus") - remaining;
+      const elapsed = modeDuration("focus", settings) - remaining;
       if (elapsed > 0) {
         const startedAt = sessionStartRef.current;
         addSession({
@@ -466,7 +497,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     }
     setMode("focus");
     setState("default");
-    setRemaining(modeDuration("focus"));
+    setRemaining(modeDuration("focus", settings));
   }, [mode, remaining, addSession, sync]);
 
   const handleSignedIn = useCallback(async () => {
@@ -474,11 +505,71 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     lastSyncedUserRef.current = null;
   }, [sync]);
 
+  const handleEditSession = useCallback(
+    (original: SessionEntry, updated: SessionEntry) => {
+      setPersisted((prev) => {
+        const key = todayKey();
+        const day = prev.byDate[key];
+        if (!day) return prev;
+        const sessions = (day.sessions ?? []).map((s) =>
+          s.startTime === original.startTime &&
+          s.durationSeconds === original.durationSeconds
+            ? updated
+            : s,
+        );
+        const focusSeconds = sessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+        return {
+          ...prev,
+          byDate: { ...prev.byDate, [key]: { ...day, sessions, focusSeconds } },
+          totalFocusSeconds:
+            prev.totalFocusSeconds - original.durationSeconds + updated.durationSeconds,
+        };
+      });
+      sync.editSession(original.startTime, updated.durationSeconds);
+    },
+    [sync],
+  );
+
+  const handleDeleteSession = useCallback(
+    (session: SessionEntry) => {
+      setPersisted((prev) => {
+        const key = todayKey();
+        const day = prev.byDate[key];
+        if (!day) return prev;
+        const sessions = (day.sessions ?? []).filter(
+          (s) =>
+            !(s.startTime === session.startTime &&
+              s.durationSeconds === session.durationSeconds),
+        );
+        const wasCompleted = session.durationSeconds >= settings.focusDurationMinutes * 60;
+        const focusSeconds = sessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+        return {
+          ...prev,
+          byDate: {
+            ...prev.byDate,
+            [key]: {
+              ...day,
+              sessions,
+              focusSeconds,
+              pomos: wasCompleted ? Math.max(0, day.pomos - 1) : day.pomos,
+            },
+          },
+          totalFocusSeconds: prev.totalFocusSeconds - session.durationSeconds,
+          totalPomos: wasCompleted
+            ? Math.max(0, prev.totalPomos - 1)
+            : prev.totalPomos,
+        };
+      });
+      sync.deleteSession(session.startTime);
+    },
+    [settings.focusDurationMinutes, sync],
+  );
+
   const stats = statsFromPersisted(persisted);
 
   const currentSessionElapsed =
     mode === "focus" && state !== "default"
-      ? modeDuration("focus") - remaining
+      ? modeDuration("focus", settings) - remaining
       : 0;
 
   return (
@@ -500,6 +591,10 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       onPause={handlePause}
       onStop={handleStop}
       onSkip={handleSkip}
+      settings={settings}
+      onSettingsChange={handleSettingsChange}
+      onEditSession={handleEditSession}
+      onDeleteSession={handleDeleteSession}
       onOpenStats={() => setShowStats(true)}
       onCloseStats={() => setShowStats(false)}
       onSignedIn={handleSignedIn}

@@ -14,21 +14,33 @@ export interface PomodoroStats {
   todaySessions: SessionEntry[];
   /** Focus minutes for each day of the current week, Sun=0..Sat=6. */
   weeklyFocusMinutes: number[];
+  /** Raw by-date data for computing arbitrary weeks. */
+  byDate: Record<string, { focusSeconds: number }>;
 }
 
 export const FOCUS_DURATION_SECONDS = 25 * 60;
 export const BREAK_DURATION_SECONDS = 5 * 60;
 
-export const DEFAULT_WEEKLY_GOAL_MINUTES = 1050;
+export const DEFAULT_WEEKLY_GOAL_MINUTES = 1260;
 export const MAX_SUGGESTED_POMOS = 12;
-const FOCUS_DURATION_MINUTES = FOCUS_DURATION_SECONDS / 60;
+
+export interface PomodoroSettings {
+  dailyGoalHours: number;
+  endOfDayHour: number;
+  focusDurationMinutes: number;
+  breakDurationMinutes: number;
+}
+
+export const DEFAULT_SETTINGS: PomodoroSettings = {
+  dailyGoalHours: 3,
+  endOfDayHour: 23,
+  focusDurationMinutes: 25,
+  breakDurationMinutes: 5,
+};
 
 export interface AdaptiveTarget {
-  /** Minutes per remaining day to hit the effective goal. */
   dailyTargetMinutes: number;
-  /** Suggested pomos for today, capped at MAX_SUGGESTED_POMOS. */
   suggestedPomos: number;
-  /** Today's day index (Sun=0..Sat=6). */
   todayDayIndex: number;
 }
 
@@ -37,21 +49,33 @@ export function computeAdaptiveTarget(
   weeklyGoalMinutes: number,
   carryoverMinutes: number,
   todayDayIndex: number,
+  settings: PomodoroSettings = DEFAULT_SETTINGS,
 ): AdaptiveTarget {
+  const focusDurationMinutes = settings.focusDurationMinutes;
+  const pomoCycleMinutes = focusDurationMinutes + settings.breakDurationMinutes;
+
   const completedMinutes = weeklyFocusMinutes.reduce((sum, m) => sum + m, 0);
   const effectiveGoal = weeklyGoalMinutes + carryoverMinutes;
   const remainingMinutes = Math.max(0, effectiveGoal - completedMinutes);
   const remainingDays = Math.max(1, 7 - todayDayIndex);
   const dailyTargetMinutes = remainingMinutes / remainingDays;
-  const suggestedPomos = Math.min(
-    MAX_SUGGESTED_POMOS,
-    Math.ceil(dailyTargetMinutes / FOCUS_DURATION_MINUTES),
-  );
+  const goalPomos = Math.ceil(dailyTargetMinutes / focusDurationMinutes);
+
+  const now = new Date();
+  const currentMinutes = now.getHours() * 60 + now.getMinutes();
+  const endMinutes = settings.endOfDayHour * 60;
+  const minutesUntilEnd = Math.max(0, endMinutes - currentMinutes);
+  const maxPomosByTime = Math.max(0, Math.floor(minutesUntilEnd / pomoCycleMinutes));
+
+  const suggestedPomos = Math.min(MAX_SUGGESTED_POMOS, goalPomos, maxPomosByTime);
   return { dailyTargetMinutes, suggestedPomos, todayDayIndex };
 }
 
-export function modeDuration(mode: PomodoroMode): number {
-  return mode === "focus" ? FOCUS_DURATION_SECONDS : BREAK_DURATION_SECONDS;
+export function modeDuration(mode: PomodoroMode, settings?: PomodoroSettings): number {
+  const s = settings ?? DEFAULT_SETTINGS;
+  return mode === "focus"
+    ? s.focusDurationMinutes * 60
+    : s.breakDurationMinutes * 60;
 }
 
 export function formatTimer(seconds: number): string {

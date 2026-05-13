@@ -48,6 +48,10 @@ export interface UseSyncReturn {
   pushGoals: (g: ServerGoals) => void;
   /** Push all local sessions in one bulk request (used on first sign-in). */
   bulkPushSessions: (sessions: ServerSession[]) => Promise<void>;
+  /** Fire-and-forget DELETE of a session by startTime. */
+  deleteSession: (startTime: number) => void;
+  /** Fire-and-forget PATCH of a session's duration by startTime. */
+  editSession: (startTime: number, durationSeconds: number) => void;
   /** Force-refresh the next-auth session (call after signIn). */
   refreshSession: () => Promise<void>;
 }
@@ -162,6 +166,30 @@ export function useSync(): UseSyncReturn {
     [authed],
   );
 
+  const deleteSession = useCallback(
+    (startTime: number) => {
+      if (!authed) return;
+      fetch(`/api/sessions/${startTime}`, {
+        method: "DELETE",
+        keepalive: true,
+      }).catch(() => {});
+    },
+    [authed],
+  );
+
+  const editSession = useCallback(
+    (startTime: number, durationSeconds: number) => {
+      if (!authed) return;
+      fetch(`/api/sessions/${startTime}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ durationSeconds }),
+        keepalive: true,
+      }).catch(() => {});
+    },
+    [authed],
+  );
+
   useEffect(() => {
     if (sessionStatus === "unauthenticated") setStatus("idle");
   }, [sessionStatus]);
@@ -174,6 +202,8 @@ export function useSync(): UseSyncReturn {
     pushSession,
     pushGoals,
     bulkPushSessions,
+    deleteSession,
+    editSession,
     refreshSession,
   };
 }

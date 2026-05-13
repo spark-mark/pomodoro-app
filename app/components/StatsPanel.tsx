@@ -6,9 +6,11 @@ import { AccountSection } from "./AuthUI";
 import type { SyncStatus } from "./useSync";
 import {
   computeAdaptiveTarget,
+  DEFAULT_SETTINGS,
   DEFAULT_WEEKLY_GOAL_MINUTES,
   FOCUS_DURATION_SECONDS,
   type AdaptiveTarget,
+  type PomodoroSettings,
   type PomodoroStats,
   type SessionEntry,
 } from "./pomodoro-types";
@@ -36,25 +38,33 @@ function hoursOfDay(timestamp: number): number {
 
 interface MiniSessionTimelineProps {
   sessions: SessionEntry[];
+  focusDurationSeconds: number;
   currentSessionStart: number | null;
   currentSessionElapsed: number;
   now: number;
 }
 
 function MiniSessionTimeline(props: MiniSessionTimelineProps) {
-  const { sessions, currentSessionStart, currentSessionElapsed, now } = props;
+  const { sessions, focusDurationSeconds, currentSessionStart, currentSessionElapsed } = props;
   const scrollRef = useRef<HTMLDivElement>(null);
   const hasScrolledRef = useRef(false);
 
-  const nowHour = hoursOfDay(now);
+  const [realNow, setRealNow] = useState(Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setRealNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const nowHour = hoursOfDay(realNow);
 
   useEffect(() => {
     if (hasScrolledRef.current) return;
     const container = scrollRef.current;
     if (!container) return;
     const trackWidth = container.scrollWidth;
-    const targetLeftHour = Math.max(0, Math.min(16, nowHour - 6));
-    container.scrollLeft = (targetLeftHour / 24) * trackWidth;
+    const containerWidth = container.clientWidth;
+    const playheadX = (nowHour / 24) * trackWidth;
+    container.scrollLeft = playheadX - containerWidth / 2;
     hasScrolledRef.current = true;
   }, [nowHour]);
 
@@ -62,12 +72,12 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
 
   return (
-    <div className="bg-[#cec1bf] h-[100px] rounded-[18px] overflow-hidden w-full relative">
+    <div className="bg-[#cec1bf] h-[100px] rounded-[18px] overflow-hidden w-full relative" data-scrollable-x="">
       <div
         ref={scrollRef}
         className="overflow-x-auto scrollbar-hide h-full"
       >
-        <div className="relative h-full" style={{ width: "300%" }}>
+        <div className="relative h-full" style={{ width: "480%" }}>
           {/* Hour markers (25 dotted vertical lines, 0–24) */}
           {Array.from({ length: 25 }).map((_, h) => (
             <div
@@ -99,7 +109,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
                 style={{
                   left: `${(inProgressStartHour / 24) * 100}%`,
                   top: "22px",
-                  width: `${(FOCUS_DURATION_SECONDS / SECONDS_PER_DAY) * 100}%`,
+                  width: `${(focusDurationSeconds / SECONDS_PER_DAY) * 100}%`,
                   height: "47px",
                 }}
               />
@@ -163,29 +173,57 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
   );
 }
 
-/* ── Year heatmap (placeholder) ── */
+/* ── Year heatmap ── */
 
-function YearHeatmap() {
-  const rows = 7;
-  const cols = 52;
-  const accent = new Set([
-    3, 9, 15, 22, 31, 47, 80, 110, 145, 200, 240, 290, 320,
-  ]);
+function buildYearGrid(byDate: Record<string, { focusSeconds: number }>): number[][] {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dayOfWeek = today.getDay();
+  const endDate = new Date(today);
+  const startDate = new Date(today);
+  startDate.setDate(today.getDate() - (52 * 7 - 1) - dayOfWeek);
+
+  const grid: number[][] = Array.from({ length: 7 }, () => Array(52).fill(0));
+
+  const cursor = new Date(startDate);
+  for (let col = 0; col < 52; col++) {
+    for (let row = 0; row < 7; row++) {
+      if (cursor > today) break;
+      const y = cursor.getFullYear();
+      const m = `${cursor.getMonth() + 1}`.padStart(2, "0");
+      const d = `${cursor.getDate()}`.padStart(2, "0");
+      const key = `${y}-${m}-${d}`;
+      const entry = byDate[key];
+      if (entry) grid[row][col] = Math.floor(entry.focusSeconds / 60);
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+  return grid;
+}
+
+const HEAT_COLORS = ["#cec1bf", "#b8b0c4", "#8f92a9", "#6b6f94", "#545b7f"];
+
+function heatColor(minutes: number): string {
+  if (minutes === 0) return HEAT_COLORS[0];
+  if (minutes < 30) return HEAT_COLORS[1];
+  if (minutes < 90) return HEAT_COLORS[2];
+  if (minutes < 180) return HEAT_COLORS[3];
+  return HEAT_COLORS[4];
+}
+
+function YearHeatmap({ byDate }: { byDate: Record<string, { focusSeconds: number }> }) {
+  const grid = buildYearGrid(byDate);
   return (
     <div className="flex flex-col gap-[3px]">
-      {Array.from({ length: rows }).map((_, r) => (
+      {Array.from({ length: 7 }).map((_, r) => (
         <div key={r} className="flex gap-[3px]">
-          {Array.from({ length: cols }).map((_, c) => {
-            const idx = c * rows + r;
-            const on = accent.has(idx);
-            return (
-              <div
-                key={c}
-                className="size-[5px] rounded-[1px]"
-                style={{ backgroundColor: on ? "#545b7f" : "#cec1bf" }}
-              />
-            );
-          })}
+          {Array.from({ length: 52 }).map((_, c) => (
+            <div
+              key={c}
+              className="size-[5px] rounded-[1px]"
+              style={{ backgroundColor: heatColor(grid[r][c]) }}
+            />
+          ))}
         </div>
       ))}
     </div>
@@ -195,7 +233,7 @@ function YearHeatmap() {
 /* ── Weekly section (bar chart + controls) ── */
 
 const MAX_HOURS = 8;
-const GRID_HOURS = [2, 4, 6, 8];
+const GRID_HOURS = [0, 2, 4, 6, 8];
 
 const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -207,29 +245,70 @@ function weekLabel(offset: number): string {
 
 const DASHED_AMBER_BORDER = "1.5px dashed #a98461";
 
+function weekMinutesForOffset(
+  byDate: Record<string, { focusSeconds: number }>,
+  offset: number,
+): number[] {
+  const now = new Date();
+  const sunday = new Date(now);
+  sunday.setHours(0, 0, 0, 0);
+  sunday.setDate(now.getDate() - now.getDay() + offset * 7);
+  const result = new Array<number>(7).fill(0);
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    const y = d.getFullYear();
+    const m = `${d.getMonth() + 1}`.padStart(2, "0");
+    const dd = `${d.getDate()}`.padStart(2, "0");
+    const key = `${y}-${m}-${dd}`;
+    const entry = byDate[key];
+    if (entry) result[i] = Math.floor(entry.focusSeconds / 60);
+  }
+  return result;
+}
+
 interface WeeklySectionProps {
   weeklyFocusMinutes: number[];
   adaptiveTarget: AdaptiveTarget;
+  byDate: Record<string, { focusSeconds: number }>;
+  settings?: PomodoroSettings;
 }
 
 function WeeklySection({
   weeklyFocusMinutes,
   adaptiveTarget,
+  byDate,
+  settings,
 }: WeeklySectionProps) {
   const [weekOffset, setWeekOffset] = useState(0);
 
+  const displayMinutes =
+    weekOffset === 0
+      ? weeklyFocusMinutes
+      : weekMinutesForOffset(byDate, weekOffset);
+
   const days = DAY_LABELS.map((label, i) => ({
     label,
-    hours: (weeklyFocusMinutes[i] ?? 0) / 60,
+    hours: (displayMinutes[i] ?? 0) / 60,
   }));
   const dailyAverageMinutes = Math.round(
-    weeklyFocusMinutes.reduce((sum, m) => sum + m, 0) / 7,
+    displayMinutes.reduce((sum, m) => sum + m, 0) / 7,
   );
   const avgHours = dailyAverageMinutes / 60;
   const avgBottomPct = Math.min(1, avgHours / MAX_HOURS) * 100;
-  const targetHours = adaptiveTarget.dailyTargetMinutes / 60;
-  const targetPct = Math.min(1, targetHours / MAX_HOURS) * 100;
-  const todayDayIndex = adaptiveTarget.todayDayIndex;
+  const isCurrentWeek = weekOffset === 0;
+  const todayDayIndex = isCurrentWeek ? adaptiveTarget.todayDayIndex : -1;
+  const focusMin = settings?.focusDurationMinutes ?? 25;
+
+  const todayDoneMinutes = isCurrentWeek ? (displayMinutes[todayDayIndex] ?? 0) : 0;
+  const todayCappedMinutes = adaptiveTarget.suggestedPomos * focusMin;
+  const todayTargetHours = (todayDoneMinutes + todayCappedMinutes) / 60;
+  const todayTargetPct = isCurrentWeek ? Math.min(1, todayTargetHours / MAX_HOURS) * 100 : 0;
+
+  const dailyGoalHours = settings?.dailyGoalHours ?? 3;
+  const futureTargetPct = isCurrentWeek ? Math.min(1, dailyGoalHours / MAX_HOURS) * 100 : 0;
+
+  const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
   return (
     <div className="flex flex-col gap-[12px]">
@@ -289,30 +368,48 @@ function WeeklySection({
                 const actualPct = Math.min(1, d.hours / MAX_HOURS) * 100;
                 const isToday = i === todayDayIndex;
                 const isFuture = i > todayDayIndex;
+                const barTargetHours = isToday ? todayTargetHours : dailyGoalHours;
+                const actualMin = Math.round(d.hours * 60);
+                const targetMin = Math.round(barTargetHours * 60);
+                const showTooltip = tooltipDay === i;
                 return (
-                  <div key={d.label} className="flex-1 relative h-full">
+                  <div
+                    key={d.label}
+                    className="flex-1 relative h-full"
+                    onClick={() => setTooltipDay(showTooltip ? null : i)}
+                  >
+                    {showTooltip && (actualMin > 0 || ((isToday || isFuture) && targetMin > 0)) && (
+                      <div
+                        className="absolute left-1/2 -translate-x-1/2 z-20 bg-[#a98461] text-white text-[10px] tracking-[-0.3px] rounded-[6px] px-[6px] py-[3px] whitespace-nowrap pointer-events-none"
+                        style={{ bottom: `${Math.max(actualPct, isToday ? todayTargetPct : futureTargetPct) + 3}%` }}
+                      >
+                        {actualMin > 0 && <span>{Math.floor(actualMin / 60)}h{actualMin % 60 > 0 ? ` ${actualMin % 60}m` : ""}</span>}
+                        {actualMin > 0 && (isToday || isFuture) && " / "}
+                        {(isToday || isFuture) && <span>{Math.floor(targetMin / 60)}h{targetMin % 60 > 0 ? ` ${targetMin % 60}m` : ""}</span>}
+                      </div>
+                    )}
                     {!isFuture && (
                       <div
                         className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[3px]"
                         style={{ height: `${actualPct}%` }}
                       />
                     )}
-                    {isToday && targetPct > actualPct && (
+                    {isToday && todayTargetPct > actualPct && (
                       <div
                         className="absolute inset-x-0 rounded-[3px]"
                         style={{
                           bottom: `${actualPct}%`,
-                          height: `${targetPct - actualPct}%`,
+                          height: `${todayTargetPct - actualPct}%`,
                           border: DASHED_AMBER_BORDER,
                           background: "transparent",
                         }}
                       />
                     )}
-                    {isFuture && targetPct > 0 && (
+                    {isFuture && futureTargetPct > 0 && (
                       <div
                         className="absolute inset-x-0 bottom-0 rounded-[3px]"
                         style={{
-                          height: `${targetPct}%`,
+                          height: `${futureTargetPct}%`,
                           border: DASHED_AMBER_BORDER,
                           background: "transparent",
                         }}
@@ -349,6 +446,7 @@ export interface StatsPanelDragZoneProps {
   currentSessionStart?: number | null;
   currentSessionElapsed?: number;
   simNow?: number;
+  focusDurationMinutes?: number;
 }
 
 export function StatsPanelDragZone({
@@ -356,11 +454,13 @@ export function StatsPanelDragZone({
   currentSessionStart = null,
   currentSessionElapsed = 0,
   simNow,
+  focusDurationMinutes = 25,
 }: StatsPanelDragZoneProps) {
   return (
     <div className="px-[18px] pb-[12px]">
       <MiniSessionTimeline
         sessions={stats.todaySessions}
+        focusDurationSeconds={focusDurationMinutes * 60}
         currentSessionStart={currentSessionStart}
         currentSessionElapsed={currentSessionElapsed}
         now={simNow ?? Date.now()}
@@ -388,7 +488,17 @@ function formatDuration(seconds: number): string {
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
 }
 
-function FocusLog({ sessions }: { sessions: SessionEntry[] }) {
+interface FocusLogProps {
+  sessions: SessionEntry[];
+  onEdit?: (original: SessionEntry, updated: SessionEntry) => void;
+  onDelete?: (session: SessionEntry) => void;
+}
+
+function FocusLog({ sessions, onEdit, onDelete }: FocusLogProps) {
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editMinutes, setEditMinutes] = useState(0);
+
   if (sessions.length === 0) return null;
 
   const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
@@ -402,29 +512,105 @@ function FocusLog({ sessions }: { sessions: SessionEntry[] }) {
         {sorted.map((s, i) => {
           const endTime = s.startTime + s.durationSeconds * 1000;
           const isCompleted = s.durationSeconds >= FOCUS_DURATION_SECONDS;
+          const isSelected = selectedIdx === i;
+          const isEditing = editingIdx === i;
           return (
-            <div key={`fl-${i}`} className="flex items-stretch">
-              {/* Timeline column */}
-              <div className="flex flex-col items-center w-[24px] shrink-0">
+            <div key={`fl-${i}`} className="flex flex-col">
+              <div
+                className="flex items-stretch"
+                onClick={() => {
+                  if (isSelected) {
+                    setSelectedIdx(null);
+                    setEditingIdx(null);
+                  } else {
+                    setSelectedIdx(i);
+                    setEditingIdx(null);
+                  }
+                }}
+              >
+                {/* Timeline column */}
+                <div className="flex flex-col items-center w-[24px] shrink-0 relative">
+                  <div
+                    className="size-[8px] rounded-full mt-[6px] shrink-0 z-10"
+                    style={{
+                      backgroundColor: isCompleted ? "#545b7f" : "#a98461",
+                    }}
+                  />
+                  {i < sorted.length - 1 && (
+                    <div className="w-[1.5px] bg-[#c2c9dc]/60 absolute top-[10px] bottom-[-6px]" />
+                  )}
+                </div>
+                {/* Content */}
+                <div className="flex items-center justify-between flex-1 min-w-0 pb-[14px] pl-[8px]">
+                  <span className="text-[#545b7f] text-[13px] tracking-[-0.5px]">
+                    {formatTime12(s.startTime)} – {formatTime12(endTime)}
+                  </span>
+                  <span className="text-[#8f92a9] text-[13px] tracking-[-0.5px]">
+                    {formatDuration(s.durationSeconds)}
+                  </span>
+                </div>
+              </div>
+              {isSelected && !isEditing && (
+                <div className="flex gap-[8px] pl-[32px] pb-[12px]">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingIdx(i);
+                      setEditMinutes(Math.round(s.durationSeconds / 60));
+                    }}
+                    className="pressable-sm text-[#545b7f] text-[12px] tracking-[-0.5px] bg-[#cec1bf]/50 rounded-[8px] px-[10px] py-[5px]"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete?.(s);
+                      setSelectedIdx(null);
+                    }}
+                    className="pressable-sm text-[#c65c5c] text-[12px] tracking-[-0.5px] bg-[#c65c5c]/10 rounded-[8px] px-[10px] py-[5px]"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+              {isEditing && (
                 <div
-                  className="size-[8px] rounded-full mt-[6px] shrink-0"
-                  style={{
-                    backgroundColor: isCompleted ? "#545b7f" : "#a98461",
-                  }}
-                />
-                {i < sorted.length - 1 && (
-                  <div className="w-[1.5px] flex-1 bg-[#c2c9dc]/60" />
-                )}
-              </div>
-              {/* Content */}
-              <div className="flex items-center justify-between flex-1 min-w-0 pb-[14px] pl-[8px]">
-                <span className="text-[#545b7f] text-[13px] tracking-[-0.5px]">
-                  {formatTime12(s.startTime)} – {formatTime12(endTime)}
-                </span>
-                <span className="text-[#8f92a9] text-[13px] tracking-[-0.5px]">
-                  {formatDuration(s.durationSeconds)}
-                </span>
-              </div>
+                  className="flex items-center gap-[8px] pl-[32px] pb-[12px]"
+                  onPointerDown={(e) => e.stopPropagation()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setEditMinutes(Math.max(1, editMinutes - 5))}
+                    className="pressable-sm size-[24px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[14px] flex items-center justify-center"
+                  >
+                    −
+                  </button>
+                  <span className="text-[#545b7f] text-[13px] tracking-[-0.5px] min-w-[36px] text-center tabular-nums">
+                    {editMinutes}m
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditMinutes(Math.min(480, editMinutes + 5))}
+                    className="pressable-sm size-[24px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[14px] flex items-center justify-center"
+                  >
+                    +
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onEdit?.(s, { ...s, durationSeconds: editMinutes * 60 });
+                      setEditingIdx(null);
+                      setSelectedIdx(null);
+                    }}
+                    className="pressable-sm text-[#e6e1e0] text-[12px] tracking-[-0.5px] bg-[#545b7f] rounded-[8px] px-[10px] py-[5px] ml-auto"
+                  >
+                    Save
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}
@@ -440,6 +626,9 @@ export interface StatsPanelScrollableProps {
   userEmail?: string | null;
   syncStatus?: SyncStatus;
   onSignedIn?: () => void;
+  settings?: PomodoroSettings;
+  onEditSession?: (original: SessionEntry, updated: SessionEntry) => void;
+  onDeleteSession?: (session: SessionEntry) => void;
 }
 
 export function StatsPanelScrollable({
@@ -449,12 +638,16 @@ export function StatsPanelScrollable({
   userEmail = null,
   syncStatus = "idle",
   onSignedIn,
+  settings = DEFAULT_SETTINGS,
+  onEditSession,
+  onDeleteSession,
 }: StatsPanelScrollableProps) {
   const target = computeAdaptiveTarget(
     stats.weeklyFocusMinutes,
     weeklyGoalMinutes,
     carryoverMinutes,
     new Date().getDay(),
+    settings,
   );
 
   const remainingPomos = Math.max(0, target.suggestedPomos - stats.todayPomos);
@@ -506,6 +699,8 @@ export function StatsPanelScrollable({
       <WeeklySection
         weeklyFocusMinutes={stats.weeklyFocusMinutes}
         adaptiveTarget={target}
+        byDate={stats.byDate}
+        settings={settings}
       />
 
       {/* ── Lifetime ── */}
@@ -522,12 +717,12 @@ export function StatsPanelScrollable({
           <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
             Year Overview
           </p>
-          <YearHeatmap />
+          <YearHeatmap byDate={stats.byDate} />
         </div>
       </div>
 
       {/* ── Focus Log ── */}
-      <FocusLog sessions={stats.todaySessions} />
+      <FocusLog sessions={stats.todaySessions} onEdit={onEditSession} onDelete={onDeleteSession} />
 
       {/* ── Account ── */}
       <AccountSection email={userEmail} syncStatus={syncStatus} onSignedIn={onSignedIn} />
