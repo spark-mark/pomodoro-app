@@ -74,9 +74,9 @@ const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #31487b 0%, #31487b 1
 
 /* ── Design-time layout constants (based on 393×852 frame) ── */
 const DESIGN_H = 852;
-const D_TOP_COLLAPSED = 544;
+const D_TOP_COLLAPSED = 620;
 const D_TOP_EXPANDED = 160;
-const D_TIMER_H_COLLAPSED = 589;
+const D_TIMER_H_COLLAPSED = 625;
 const D_TIMER_H_EXPANDED = 160;
 const D_TIMER_PT_COLLAPSED = 120;
 const D_TIMER_PT_EXPANDED = 16;
@@ -496,6 +496,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             currentSessionElapsed={currentSessionElapsed}
             simNow={simNow}
             focusDurationMinutes={settings.focusDurationMinutes}
+            weeklyGoalMinutes={weeklyGoalMinutes}
+            carryoverMinutes={carryoverMinutes}
+            settings={settings}
           />
         </div>
 

@@ -414,15 +414,21 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   useEffect(() => {
     if (state !== "running" || !("wakeLock" in navigator)) return;
     let lock: WakeLockSentinel | null = null;
+    let released = false;
     const acquire = () => {
-      navigator.wakeLock.request("screen").then((l) => { lock = l; }).catch(() => {});
+      navigator.wakeLock.request("screen").then((l) => {
+        if (released) { l.release(); return; }
+        lock = l;
+        l.addEventListener("release", () => { lock = null; });
+      }).catch(() => {});
     };
     acquire();
     const onVisibility = () => {
-      if (document.visibilityState === "visible" && !lock) acquire();
+      if (document.visibilityState === "visible") acquire();
     };
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      released = true;
       document.removeEventListener("visibilitychange", onVisibility);
       lock?.release();
     };

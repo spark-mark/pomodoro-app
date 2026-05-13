@@ -447,6 +447,9 @@ export interface StatsPanelDragZoneProps {
   currentSessionElapsed?: number;
   simNow?: number;
   focusDurationMinutes?: number;
+  weeklyGoalMinutes?: number;
+  carryoverMinutes?: number;
+  settings?: PomodoroSettings;
 }
 
 export function StatsPanelDragZone({
@@ -455,9 +458,22 @@ export function StatsPanelDragZone({
   currentSessionElapsed = 0,
   simNow,
   focusDurationMinutes = 25,
+  weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
+  carryoverMinutes = 0,
+  settings = DEFAULT_SETTINGS,
 }: StatsPanelDragZoneProps) {
+  const target = computeAdaptiveTarget(
+    stats.weeklyFocusMinutes,
+    weeklyGoalMinutes,
+    carryoverMinutes,
+    new Date().getDay(),
+    settings,
+  );
+  const remainingPomos = Math.max(0, target.suggestedPomos - stats.todayPomos);
+  const totalSquares = stats.todayPomos + remainingPomos;
+
   return (
-    <div className="px-[18px] pb-[12px]">
+    <div className="px-[18px] pb-[12px] flex flex-col gap-[16px]">
       <MiniSessionTimeline
         sessions={stats.todaySessions}
         focusDurationSeconds={focusDurationMinutes * 60}
@@ -465,6 +481,44 @@ export function StatsPanelDragZone({
         currentSessionElapsed={currentSessionElapsed}
         now={simNow ?? Date.now()}
       />
+      <div className="grid grid-cols-2 gap-[10px]">
+        <div className="flex flex-col gap-[8px] items-start">
+          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+            Today&apos;s Pomos
+          </p>
+          <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
+            {totalSquares > 0 ? (
+              <>
+                {Array.from({ length: stats.todayPomos }).map((_, i) => (
+                  <div
+                    key={`s-${i}`}
+                    className="size-[18px] rounded-[4px] bg-[#545b7f]"
+                  />
+                ))}
+                {Array.from({ length: remainingPomos }).map((_, i) => (
+                  <div
+                    key={`d-${i}`}
+                    className="size-[18px] rounded-[4px]"
+                    style={{
+                      border: "1.5px dashed #a98461",
+                      background: "transparent",
+                    }}
+                  />
+                ))}
+              </>
+            ) : (
+              <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
+                None
+              </p>
+            )}
+          </div>
+        </div>
+        <StatBox
+          title="Today's Focus"
+          value={stats.todayFocusMinutes}
+          format="time"
+        />
+      </div>
     </div>
   );
 }
@@ -650,51 +704,8 @@ export function StatsPanelScrollable({
     settings,
   );
 
-  const remainingPomos = Math.max(0, target.suggestedPomos - stats.todayPomos);
-  const totalSquares = stats.todayPomos + remainingPomos;
-
   return (
     <div className="px-[18px] pb-[32px] flex flex-col gap-[24px]">
-      {/* ── Daily ── */}
-      <div className="grid grid-cols-2 gap-[10px]">
-        <div className="flex flex-col gap-[8px] items-start">
-          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
-            Today&apos;s Pomos
-          </p>
-          <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
-            {totalSquares > 0 ? (
-              <>
-                {Array.from({ length: stats.todayPomos }).map((_, i) => (
-                  <div
-                    key={`s-${i}`}
-                    className="size-[18px] rounded-[4px] bg-[#545b7f]"
-                  />
-                ))}
-                {Array.from({ length: remainingPomos }).map((_, i) => (
-                  <div
-                    key={`d-${i}`}
-                    className="size-[18px] rounded-[4px]"
-                    style={{
-                      border: "1.5px dashed #a98461",
-                      background: "transparent",
-                    }}
-                  />
-                ))}
-              </>
-            ) : (
-              <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
-                None
-              </p>
-            )}
-          </div>
-        </div>
-        <StatBox
-          title="Today's Focus"
-          value={stats.todayFocusMinutes}
-          format="time"
-        />
-      </div>
-
       {/* ── Weekly ── */}
       <WeeklySection
         weeklyFocusMinutes={stats.weeklyFocusMinutes}
