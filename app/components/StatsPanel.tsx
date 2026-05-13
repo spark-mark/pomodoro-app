@@ -72,7 +72,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
 
   return (
-    <div className="bg-[#cec1bf] h-[100px] rounded-[18px] overflow-hidden w-full relative" data-scrollable-x="">
+    <div className="bg-[#d8d0ce] h-[100px] rounded-[18px] overflow-hidden w-full relative" data-scrollable-x="">
       <div
         ref={scrollRef}
         className="overflow-x-auto scrollbar-hide h-full"
@@ -163,11 +163,11 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
       {/* Edge fade overlays — z-10 to sit above playhead and all content */}
       <div
         className="absolute inset-y-0 left-0 w-[36px] z-10 pointer-events-none rounded-l-[18px]"
-        style={{ background: "linear-gradient(to right, #cec1bf, rgba(206,193,191,0))" }}
+        style={{ background: "linear-gradient(to right, #d8d0ce, rgba(216,208,206,0))" }}
       />
       <div
         className="absolute inset-y-0 right-0 w-[36px] z-10 pointer-events-none rounded-r-[18px]"
-        style={{ background: "linear-gradient(to left, #cec1bf, rgba(206,193,191,0))" }}
+        style={{ background: "linear-gradient(to left, #d8d0ce, rgba(216,208,206,0))" }}
       />
     </div>
   );
@@ -311,7 +311,7 @@ function WeeklySection({
   const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
   return (
-    <div className="bg-[#cec1bf] rounded-[18px] p-[14px] flex flex-col gap-[12px]">
+    <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[12px]">
       {/* Header row: Daily Average + week nav */}
       <div className="flex items-end justify-between">
         <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
@@ -473,7 +473,7 @@ export function StatsPanelDragZone({
   const totalSquares = stats.todayPomos + remainingPomos;
 
   return (
-    <div className="px-[18px] pb-[12px] flex flex-col gap-[16px]">
+    <div className="px-[18px] pb-[12px] flex flex-col gap-[12px]">
       <MiniSessionTimeline
         sessions={stats.todaySessions}
         focusDurationSeconds={focusDurationMinutes * 60}
@@ -481,39 +481,39 @@ export function StatsPanelDragZone({
         currentSessionElapsed={currentSessionElapsed}
         now={simNow ?? Date.now()}
       />
-      <div className="bg-[#cec1bf] rounded-[18px] p-[14px]">
-        <div className="grid grid-cols-2 gap-[10px]">
-          <div className="flex flex-col gap-[8px] items-start">
-            <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
-              Today&apos;s Pomos
-            </p>
-            <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
-              {totalSquares > 0 ? (
-                <>
-                  {Array.from({ length: stats.todayPomos }).map((_, i) => (
-                    <div
-                      key={`s-${i}`}
-                      className="size-[18px] rounded-[4px] bg-[#545b7f]"
-                    />
-                  ))}
-                  {Array.from({ length: remainingPomos }).map((_, i) => (
-                    <div
-                      key={`d-${i}`}
-                      className="size-[18px] rounded-[4px]"
-                      style={{
-                        border: "1.5px dashed #a98461",
-                        background: "transparent",
-                      }}
-                    />
-                  ))}
-                </>
-              ) : (
-                <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
-                  None
-                </p>
-              )}
-            </div>
+      <div className="grid grid-cols-2 gap-[12px]">
+        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[8px] items-start">
+          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+            Today&apos;s Pomos
+          </p>
+          <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
+            {totalSquares > 0 ? (
+              <>
+                {Array.from({ length: stats.todayPomos }).map((_, i) => (
+                  <div
+                    key={`s-${i}`}
+                    className="size-[18px] rounded-[4px] bg-[#545b7f]"
+                  />
+                ))}
+                {Array.from({ length: remainingPomos }).map((_, i) => (
+                  <div
+                    key={`d-${i}`}
+                    className="size-[18px] rounded-[4px]"
+                    style={{
+                      border: "1.5px dashed #a98461",
+                      background: "transparent",
+                    }}
+                  />
+                ))}
+              </>
+            ) : (
+              <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
+                None
+              </p>
+            )}
           </div>
+        </div>
+        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px]">
           <StatBox
             title="Today's Focus"
             value={stats.todayFocusMinutes}
@@ -560,7 +560,7 @@ function FocusLog({ sessions, onEdit, onDelete }: FocusLogProps) {
   const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
 
   return (
-    <div className="bg-[#cec1bf] rounded-[18px] p-[14px] flex flex-col gap-[8px]">
+    <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[8px]">
       <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
         Focus Log
       </p>
@@ -707,7 +707,7 @@ export function StatsPanelScrollable({
   );
 
   return (
-    <div className="px-[18px] pb-[32px] flex flex-col gap-[24px]">
+    <div className="px-[18px] pb-[32px] flex flex-col gap-[12px]">
       {/* ── Weekly ── */}
       <WeeklySection
         weeklyFocusMinutes={stats.weeklyFocusMinutes}
@@ -717,21 +717,23 @@ export function StatsPanelScrollable({
       />
 
       {/* ── Lifetime ── */}
-      <div className="bg-[#cec1bf] rounded-[18px] p-[14px] flex flex-col gap-[16px]">
-        <div className="grid grid-cols-2 gap-[10px]">
+      <div className="grid grid-cols-2 gap-[12px]">
+        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px]">
           <StatBox title="Total Pomos" value={stats.totalPomos} />
+        </div>
+        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px]">
           <StatBox
             title="Total Focus Duration"
             value={stats.totalFocusMinutes}
             format="time"
           />
         </div>
-        <div className="flex flex-col gap-[8px]">
-          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
-            Year Overview
-          </p>
-          <YearHeatmap byDate={stats.byDate} />
-        </div>
+      </div>
+      <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[8px]">
+        <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+          Year Overview
+        </p>
+        <YearHeatmap byDate={stats.byDate} />
       </div>
 
       {/* ── Focus Log ── */}
