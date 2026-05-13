@@ -7,6 +7,7 @@ import {
   DEFAULT_WEEKLY_GOAL_MINUTES,
   DEFAULT_SETTINGS,
   FOCUS_DURATION_SECONDS,
+  formatTimer,
   modeDuration,
   type PomodoroMode,
   type PomodoroSettings,
@@ -438,6 +439,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   useEffect(() => {
     if (state !== "running") {
       lastTickRef.current = null;
+      document.title = "Pomodoro";
       return;
     }
     lastTickRef.current = Date.now();
@@ -461,8 +463,16 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
           const nextMode: PomodoroMode = mode === "focus" ? "break" : "focus";
           setMode(nextMode);
           setState("default");
+          document.title = "Pomodoro";
+          if ("Notification" in window && Notification.permission === "granted") {
+            new Notification(
+              mode === "focus" ? "Focus session complete!" : "Break is over!",
+              { body: mode === "focus" ? "Time for a break." : "Ready to focus again.", icon: "/icon-192.png" },
+            );
+          }
           return modeDuration(nextMode, settings);
         }
+        document.title = `${formatTimer(next)} — ${mode === "focus" ? "Focusing" : "Break"}`;
         return next;
       });
     }, 1000);
@@ -474,6 +484,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       sessionStartRef.current = simNowRef.current;
     }
     setState("running");
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
   }, [mode, state]);
 
   const handlePause = useCallback(() => setState("paused"), []);
