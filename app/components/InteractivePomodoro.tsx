@@ -411,6 +411,23 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     }
   }, [sync]);
 
+  useEffect(() => {
+    if (state !== "running" || !("wakeLock" in navigator)) return;
+    let lock: WakeLockSentinel | null = null;
+    const acquire = () => {
+      navigator.wakeLock.request("screen").then((l) => { lock = l; }).catch(() => {});
+    };
+    acquire();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible" && !lock) acquire();
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("visibilitychange", onVisibility);
+      lock?.release();
+    };
+  }, [state]);
+
   const lastTickRef = useRef<number | null>(null);
   useEffect(() => {
     if (state !== "running") {
