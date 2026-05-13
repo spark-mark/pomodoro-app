@@ -313,10 +313,10 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       ref={containerRef}
       className={
         fullscreen
-          ? "relative w-full h-dvh overflow-hidden"
+          ? "relative w-full overflow-hidden"
           : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px]"
       }
-      style={{ backgroundColor: "#e6e1e0" }}
+      style={{ backgroundColor: "#e6e1e0", height: "100dvh", minHeight: "-webkit-fill-available" }}
     >
       {/* ── Background layers (cross-fade by mode only) ── */}
       <div
@@ -406,8 +406,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         className="absolute inset-x-0 flex flex-col"
         style={{
           top: resolvedTop,
-          height: resolvedHeight,
+          bottom: 0,
           backgroundColor: "#e6e1e0",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           border: "0.5px solid rgba(133,114,114,0.15)",
@@ -491,21 +492,23 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           <div className="flex justify-center pt-[7px] pb-[7px] cursor-grab active:cursor-grabbing">
             <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
           </div>
-          <StatsPanelDragZone
-            stats={stats}
-            currentSessionStart={currentSessionStart}
-            currentSessionElapsed={currentSessionElapsed}
-            simNow={simNow}
-            focusDurationMinutes={settings.focusDurationMinutes}
-            weeklyGoalMinutes={weeklyGoalMinutes}
-            carryoverMinutes={carryoverMinutes}
-            settings={settings}
-          />
+          {!showSettings && (
+            <StatsPanelDragZone
+              stats={stats}
+              currentSessionStart={currentSessionStart}
+              currentSessionElapsed={currentSessionElapsed}
+              simNow={simNow}
+              focusDurationMinutes={settings.focusDurationMinutes}
+              weeklyGoalMinutes={weeklyGoalMinutes}
+              carryoverMinutes={carryoverMinutes}
+              settings={settings}
+            />
+          )}
         </div>
 
         {/* Scrollable rest of the stats / settings */}
         <div
-          className="flex-1 flex flex-col"
+          className="flex-1 flex flex-col min-h-0"
           data-scrollable={expanded ? "" : undefined}
           style={{
             overflowY: expanded ? "auto" : "hidden",

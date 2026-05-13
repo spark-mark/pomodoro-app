@@ -22,8 +22,10 @@ const barlow = Barlow({
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
-  themeColor: "#1f2230",
+  themeColor: "#e6e1e0",
 };
 
 export const metadata: Metadata = {
