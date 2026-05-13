@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import StatBox from "./StatBox";
 import type { SyncStatus } from "./useSync";
 import {
@@ -45,8 +45,20 @@ interface MiniSessionTimelineProps {
 
 function MiniSessionTimeline(props: MiniSessionTimelineProps) {
   const { sessions, focusDurationSeconds, currentSessionStart, currentSessionElapsed } = props;
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollElRef = useRef<HTMLDivElement | null>(null);
   const hasScrolledRef = useRef(false);
+  const scrollRef = useCallback((el: HTMLDivElement | null) => {
+    scrollElRef.current = el;
+    if (!el || hasScrolledRef.current) return;
+    requestAnimationFrame(() => {
+      if (hasScrolledRef.current) return;
+      hasScrolledRef.current = true;
+      const trackWidth = el.scrollWidth;
+      const containerWidth = el.clientWidth;
+      const playheadX = (hoursOfDay(Date.now()) / 24) * trackWidth;
+      el.scrollLeft = playheadX - containerWidth / 2;
+    });
+  }, []);
 
   const [realNow, setRealNow] = useState(Date.now());
   useEffect(() => {
@@ -55,17 +67,6 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
   }, []);
 
   const nowHour = hoursOfDay(realNow);
-
-  useEffect(() => {
-    if (hasScrolledRef.current) return;
-    const container = scrollRef.current;
-    if (!container) return;
-    const trackWidth = container.scrollWidth;
-    const containerWidth = container.clientWidth;
-    const playheadX = (nowHour / 24) * trackWidth;
-    container.scrollLeft = playheadX - containerWidth / 2;
-    hasScrolledRef.current = true;
-  }, [nowHour]);
 
   const inProgressStartHour =
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
