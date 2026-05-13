@@ -313,10 +313,10 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       ref={containerRef}
       className={
         fullscreen
-          ? "relative w-full overflow-hidden"
+          ? "fixed inset-0 overflow-hidden"
           : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px]"
       }
-      style={{ backgroundColor: "#e6e1e0", height: "100dvh", minHeight: "-webkit-fill-available" }}
+      style={{ backgroundColor: "#e6e1e0" }}
     >
       {/* ── Background layers (cross-fade by mode only) ── */}
       <div
