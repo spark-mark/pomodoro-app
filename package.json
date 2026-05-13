@@ -9,6 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@capacitor/cli": "^8.3.4",
+    "@capacitor/core": "^8.3.4",
+    "@capacitor/ios": "^8.3.4",
     "@neondatabase/serverless": "^1.1.0",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",

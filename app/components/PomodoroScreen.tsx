@@ -408,7 +408,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           top: resolvedTop,
           bottom: 0,
           backgroundColor: "#e6e1e0",
-          paddingBottom: "env(safe-area-inset-bottom, 0px)",
           borderTopLeftRadius: 36,
           borderTopRightRadius: 36,
           border: "0.5px solid rgba(133,114,114,0.15)",
