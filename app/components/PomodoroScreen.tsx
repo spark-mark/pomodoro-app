@@ -513,14 +513,13 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
         {/* Fixed top edge — content scrolls behind this to preserve rounded gap */}
         <div
-          className="absolute inset-x-0 top-0 z-20 pointer-events-none"
+          className="absolute inset-x-0 z-20 pointer-events-none"
           style={{
-            height: 20,
+            top: -1,
+            height: 22,
             background: "#e6e1e0",
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
-            borderBottomLeftRadius: 12,
-            borderBottomRightRadius: 12,
           }}
         />
 
