@@ -539,22 +539,22 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             className="absolute"
             style={{
               bottom: -10,
-              left: 0,
+              left: 14,
               width: 10,
               height: 10,
               background: "red",
-              borderBottomRightRadius: 10,
+              borderTopLeftRadius: 10,
             }}
           />
           <div
             className="absolute"
             style={{
               bottom: -10,
-              right: 0,
+              right: 14,
               width: 10,
               height: 10,
               background: "red",
-              borderBottomLeftRadius: 10,
+              borderTopRightRadius: 10,
             }}
           />
         </div>
