@@ -523,7 +523,43 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           }}
         />
 
-        {/* Unified scrollable panel — border-radius clips content with rounded corners */}
+        {/* Fixed top edge — content scrolls behind this to preserve rounded gap */}
+        <div
+          className="absolute inset-x-0 z-20 pointer-events-none"
+          style={{
+            top: -1,
+            height: 22,
+            background: "#e6e1e0",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+          }}
+        >
+          {/* Debug: inverted corners in red so we can see placement */}
+          <div
+            className="absolute"
+            style={{
+              bottom: -10,
+              left: 0,
+              width: 10,
+              height: 10,
+              background: "red",
+              borderBottomRightRadius: 10,
+            }}
+          />
+          <div
+            className="absolute"
+            style={{
+              bottom: -10,
+              right: 0,
+              width: 10,
+              height: 10,
+              background: "red",
+              borderBottomLeftRadius: 10,
+            }}
+          />
+        </div>
+
+        {/* Unified scrollable panel */}
         <div
           ref={scrollRef}
           className="flex-1 flex flex-col min-h-0"
@@ -531,8 +567,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           style={{
             overflowY: expanded ? "auto" : "hidden",
             touchAction: expanded ? "pan-y" : "none",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
           }}
         >
           {/* Drag handle bar */}
