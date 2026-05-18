@@ -508,13 +508,13 @@ export function StatsPanelDragZone({
                 {Array.from({ length: stats.todayPomos }).map((_, i) => (
                   <div
                     key={`s-${i}`}
-                    className="size-[18px] rounded-[1px] bg-[#545b7f]"
+                    className="size-[18px] rounded-[2px] bg-[#545b7f]"
                   />
                 ))}
                 {Array.from({ length: remainingPomos }).map((_, i) => (
                   <div
                     key={`d-${i}`}
-                    className="size-[18px] rounded-[1px]"
+                    className="size-[18px] rounded-[2px]"
                     style={{
                       border: "1.5px dashed #a98461",
                       background: "transparent",
