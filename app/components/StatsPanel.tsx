@@ -252,7 +252,7 @@ function YearHeatmap({ byDate }: { byDate: Record<string, { focusSeconds: number
           {Array.from({ length: 52 }).map((_, c) => (
             <div
               key={c}
-              className="size-[5px] rounded-[1px]"
+              className="size-[5px] rounded-[3px]"
               style={{ backgroundColor: heatColor(grid[r][c]) }}
             />
           ))}
@@ -390,13 +390,13 @@ function WeeklySection({
                     )}
                     {!isFuture && (
                       <div
-                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[1px]"
+                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[3px]"
                         style={{ height: `${actualPct}%` }}
                       />
                     )}
                     {(isToday || isFuture) && targetPct > actualPct && (
                       <div
-                        className="absolute inset-x-0 rounded-[1px]"
+                        className="absolute inset-x-0 rounded-[3px]"
                         style={{
                           bottom: `${actualPct}%`,
                           height: `${targetPct - actualPct}%`,
@@ -409,14 +409,10 @@ function WeeklySection({
                 );
               })}
             </div>
-            {/* Average line — dashed */}
+            {/* Average line */}
             <div
-              className="absolute left-0 right-0 pointer-events-none"
-              style={{
-                bottom: `${avgBottomPct}%`,
-                height: "1px",
-                backgroundImage: "repeating-linear-gradient(to right, #a98461 0, #a98461 6px, transparent 6px, transparent 12px)",
-              }}
+              className="absolute left-0 right-0 border-t border-[#a98461]/60 pointer-events-none"
+              style={{ bottom: `${avgBottomPct}%` }}
             />
           </div>
           <div className="flex items-start justify-between mt-1 px-[2px]">
@@ -443,17 +439,6 @@ function WeeklySection({
               {h}
             </div>
           ))}
-          {avgBottomPct > 5 && (
-            <div
-              className="absolute left-[4px] text-[10px] text-[#a98461] tracking-[-0.3px] leading-none"
-              style={{
-                bottom: `${avgBottomPct}%`,
-                transform: "translateY(50%)",
-              }}
-            >
-              avg
-            </div>
-          )}
         </div>
       </div>
 
