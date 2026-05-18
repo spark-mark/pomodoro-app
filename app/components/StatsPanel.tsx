@@ -337,8 +337,8 @@ function WeeklySection({
   const todayTargetHours = (todayDoneMinutes + todayCappedMinutes) / 60;
   const todayTargetPct = isCurrentWeek ? Math.min(1, todayTargetHours / MAX_HOURS) * 100 : 0;
 
-  const dailyGoalHours = settings?.dailyGoalHours ?? 3;
-  const futureTargetPct = isCurrentWeek ? Math.min(1, dailyGoalHours / MAX_HOURS) * 100 : 0;
+  const adaptiveDailyHours = adaptiveTarget.dailyTargetMinutes / 60;
+  const futureTargetPct = isCurrentWeek ? Math.min(1, adaptiveDailyHours / MAX_HOURS) * 100 : 0;
 
   const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
@@ -390,7 +390,7 @@ function WeeklySection({
                 const actualPct = Math.min(1, d.hours / MAX_HOURS) * 100;
                 const isToday = i === todayDayIndex;
                 const isFuture = i > todayDayIndex;
-                const barTargetHours = isToday ? todayTargetHours : dailyGoalHours;
+                const barTargetHours = isToday ? todayTargetHours : adaptiveDailyHours;
                 const actualMin = Math.round(d.hours * 60);
                 const targetMin = Math.round(barTargetHours * 60);
                 const showTooltip = tooltipDay === i;
