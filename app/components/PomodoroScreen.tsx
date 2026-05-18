@@ -521,7 +521,31 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
           }}
-        />
+        >
+          {/* Inverted corners — creates concave curve where content clips */}
+          <div
+            className="absolute"
+            style={{
+              bottom: -10,
+              left: 0,
+              width: 10,
+              height: 10,
+              background: "#e6e1e0",
+              borderBottomRightRadius: 10,
+            }}
+          />
+          <div
+            className="absolute"
+            style={{
+              bottom: -10,
+              right: 0,
+              width: 10,
+              height: 10,
+              background: "#e6e1e0",
+              borderBottomLeftRadius: 10,
+            }}
+          />
+        </div>
 
         {/* Unified scrollable panel — overscroll at top triggers collapse */}
         <div
