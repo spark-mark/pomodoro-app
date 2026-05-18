@@ -197,22 +197,16 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
   const topExpanded = Math.round(D_TOP_EXPANDED * s);
   const topMidpoint = (topCollapsed + topExpanded) / 2;
 
-  /* ── Drag-to-expand/collapse ── */
+  /* ── Drag-to-expand/collapse (overscroll-to-dismiss) ── */
   const [dragTop, setDragTop] = useState<number | null>(null);
   const isDragging = dragTop !== null;
-  const dragRef = useRef<{
-    startY: number;
-    startTop: number;
-    pointerId: number;
-  } | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
-  const dragZoneRef = useRef<HTMLDivElement>(null);
-  const dragDirectionRef = useRef<"vertical" | "horizontal" | null>(null);
   const DIRECTION_THRESHOLD = 8;
 
   useEffect(() => {
-    const el = dragZoneRef.current;
+    const el = panelRef.current;
     if (!el) return;
 
     let startX = 0;
@@ -220,6 +214,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     let startTop = 0;
     let direction: "vertical" | "horizontal" | null = null;
     let active = false;
+    let dragging = false;
 
     const onTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
@@ -233,6 +228,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       startTop = expanded ? topExpanded : topCollapsed;
       direction = null;
       active = true;
+      dragging = false;
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -240,16 +236,25 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       const t = e.touches[0];
       const dx = Math.abs(t.clientX - startX);
       const dy = Math.abs(t.clientY - startY);
+      const rawDy = t.clientY - startY;
 
       if (!direction) {
         if (dx < DIRECTION_THRESHOLD && dy < DIRECTION_THRESHOLD) return;
         direction = dx > dy ? "horizontal" : "vertical";
-        if (direction === "vertical") {
-          setDragTop(startTop);
-        }
       }
 
       if (direction === "horizontal") return;
+
+      if (!dragging) {
+        const scrollEl = scrollRef.current;
+        const atTop = !scrollEl || scrollEl.scrollTop <= 0;
+        const pullingDown = rawDy > 0;
+
+        if (expanded && !(atTop && pullingDown)) return;
+
+        dragging = true;
+        setDragTop(startTop);
+      }
 
       e.preventDefault();
       const newTop = Math.max(
@@ -263,7 +268,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       if (!active) return;
       active = false;
 
-      if (direction !== "vertical") {
+      if (!dragging) {
         direction = null;
         return;
       }
@@ -275,6 +280,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       );
       setDragTop(null);
       direction = null;
+      dragging = false;
 
       if (finalTop < topMidpoint) {
         if (!expanded) onOpenStats?.();
@@ -505,32 +511,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           </div>
         )}
 
-        {/* Drag zone: handle + timeline + daily stats — dragging anywhere here resizes the panel */}
+        {/* Unified scrollable panel — overscroll at top triggers collapse */}
         <div
-          ref={dragZoneRef}
-          className="shrink-0"
-          style={{ cursor: "grab" }}
-        >
-          {/* Drag handle bar */}
-          <div className="flex justify-center pt-[7px] pb-[7px] cursor-grab active:cursor-grabbing">
-            <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
-          </div>
-          {!showSettings && (
-            <StatsPanelDragZone
-              stats={stats}
-              currentSessionStart={currentSessionStart}
-              currentSessionElapsed={currentSessionElapsed}
-              simNow={simNow}
-              focusDurationMinutes={settings.focusDurationMinutes}
-              weeklyGoalMinutes={weeklyGoalMinutes}
-              carryoverMinutes={carryoverMinutes}
-              settings={settings}
-            />
-          )}
-        </div>
-
-        {/* Scrollable rest of the stats / settings */}
-        <div
+          ref={scrollRef}
           className="flex-1 flex flex-col min-h-0"
           data-scrollable={expanded ? "" : undefined}
           style={{
@@ -538,6 +521,11 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             touchAction: expanded ? "pan-y" : "none",
           }}
         >
+          {/* Drag handle bar */}
+          <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing">
+            <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
+          </div>
+
           {showSettings ? (
             <SettingsPanel
               settings={settings}
@@ -547,17 +535,31 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
               onSignedIn={onSignedIn}
             />
           ) : (
-            <StatsPanelScrollable
-              stats={stats}
-              weeklyGoalMinutes={weeklyGoalMinutes}
-              carryoverMinutes={carryoverMinutes}
-              userEmail={userEmail}
-              syncStatus={syncStatus}
-              onSignedIn={onSignedIn}
-              settings={settings}
-              onEditSession={onEditSession}
-              onDeleteSession={onDeleteSession}
-            />
+            <>
+              <div className="shrink-0">
+                <StatsPanelDragZone
+                  stats={stats}
+                  currentSessionStart={currentSessionStart}
+                  currentSessionElapsed={currentSessionElapsed}
+                  simNow={simNow}
+                  focusDurationMinutes={settings.focusDurationMinutes}
+                  weeklyGoalMinutes={weeklyGoalMinutes}
+                  carryoverMinutes={carryoverMinutes}
+                  settings={settings}
+                />
+              </div>
+              <StatsPanelScrollable
+                stats={stats}
+                weeklyGoalMinutes={weeklyGoalMinutes}
+                carryoverMinutes={carryoverMinutes}
+                userEmail={userEmail}
+                syncStatus={syncStatus}
+                onSignedIn={onSignedIn}
+                settings={settings}
+                onEditSession={onEditSession}
+                onDeleteSession={onDeleteSession}
+              />
+            </>
           )}
         </div>
       </div>
