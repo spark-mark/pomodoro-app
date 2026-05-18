@@ -252,7 +252,7 @@ function YearHeatmap({ byDate }: { byDate: Record<string, { focusSeconds: number
           {Array.from({ length: 52 }).map((_, c) => (
             <div
               key={c}
-              className="size-[5px] rounded-[3px]"
+              className="size-[5px] rounded-[1px]"
               style={{ backgroundColor: heatColor(grid[r][c]) }}
             />
           ))}
@@ -390,13 +390,13 @@ function WeeklySection({
                     )}
                     {!isFuture && (
                       <div
-                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[3px]"
+                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[1px]"
                         style={{ height: `${actualPct}%` }}
                       />
                     )}
                     {(isToday || isFuture) && targetPct > actualPct && (
                       <div
-                        className="absolute inset-x-0 rounded-[3px]"
+                        className="absolute inset-x-0 rounded-[1px]"
                         style={{
                           bottom: `${actualPct}%`,
                           height: `${targetPct - actualPct}%`,
@@ -439,6 +439,17 @@ function WeeklySection({
               {h}
             </div>
           ))}
+          {avgBottomPct > 5 && (
+            <div
+              className="absolute left-[4px] text-[10px] text-[#a98461] tracking-[-0.3px] leading-none"
+              style={{
+                bottom: `${avgBottomPct}%`,
+                transform: "translateY(50%)",
+              }}
+            >
+              avg
+            </div>
+          )}
         </div>
       </div>
 
