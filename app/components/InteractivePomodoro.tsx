@@ -162,12 +162,14 @@ function statsFromPersisted(p: Persisted): PomodoroStats {
     focusSeconds: 0,
     sessions: [],
   };
+  const allSessions = day.sessions ?? [];
+  const focusSessions = allSessions.filter((s) => !s.type || s.type === "focus");
   return {
     todayPomos: day.pomos,
     todayFocusMinutes: Math.floor(day.focusSeconds / 60),
     totalPomos: p.totalPomos,
     totalFocusMinutes: Math.floor(p.totalFocusSeconds / 60),
-    todaySessions: day.sessions ?? [],
+    todaySessions: focusSessions,
     weeklyFocusMinutes: weeklyFocusMinutesFromByDate(p.byDate),
     byDate: p.byDate,
   };
@@ -187,6 +189,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const [mode, setMode] = useState<PomodoroMode>("focus");
   const [state, setState] = useState<PomodoroState>("default");
   const [remaining, setRemaining] = useState<number>(modeDuration("focus"));
+  const [pomosBeforeLongBreak, setPomosBeforeLongBreak] = useState<number>(0);
   const [persisted, setPersisted] = useState<Persisted>({
     byDate: {},
     totalPomos: 0,
@@ -201,6 +204,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const [settings, setSettings] = useState<PomodoroSettings>(DEFAULT_SETTINGS);
 
   const sessionStartRef = useRef<number | null>(null);
+  const breakStartRef = useRef<number | null>(null);
   const simNowRef = useRef<number>(Date.now());
   const [simNow, setSimNow] = useState<number>(Date.now());
 
@@ -278,6 +282,13 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   useEffect(() => {
     goalsRef.current = goals;
   }, [goals]);
+
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
+  const pomosRef = useRef(pomosBeforeLongBreak);
+  pomosRef.current = pomosBeforeLongBreak;
 
   const syncRef = useRef(sync);
   syncRef.current = sync;
@@ -413,26 +424,41 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   }, [sync]);
 
   useEffect(() => {
-    if (state !== "running" || !("wakeLock" in navigator)) return;
-    let lock: WakeLockSentinel | null = null;
-    let released = false;
-    const acquire = () => {
-      navigator.wakeLock.request("screen").then((l) => {
-        if (released) { l.release(); return; }
-        lock = l;
-        l.addEventListener("release", () => { lock = null; });
-      }).catch(() => {});
-    };
-    acquire();
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") acquire();
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      released = true;
-      document.removeEventListener("visibilitychange", onVisibility);
-      lock?.release();
-    };
+    if (state !== "running") return;
+
+    let cleanup: (() => void) | null = null;
+
+    (async () => {
+      try {
+        const { KeepAwake } = await import("@capacitor-community/keep-awake");
+        await KeepAwake.keepAwake();
+        cleanup = () => { KeepAwake.allowSleep().catch(() => {}); };
+        return;
+      } catch {}
+
+      if (!("wakeLock" in navigator)) return;
+      let lock: WakeLockSentinel | null = null;
+      let released = false;
+      const acquire = () => {
+        navigator.wakeLock.request("screen").then((l) => {
+          if (released) { l.release(); return; }
+          lock = l;
+          l.addEventListener("release", () => { lock = null; });
+        }).catch(() => {});
+      };
+      acquire();
+      const onVisibility = () => {
+        if (document.visibilityState === "visible") acquire();
+      };
+      document.addEventListener("visibilitychange", onVisibility);
+      cleanup = () => {
+        released = true;
+        document.removeEventListener("visibilitychange", onVisibility);
+        lock?.release();
+      };
+    })();
+
+    return () => { cleanup?.(); };
   }, [state]);
 
   const lastTickRef = useRef<number | null>(null);
@@ -459,37 +485,123 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       setRemaining((prevRemaining) => {
         const next = prevRemaining - elapsed;
         if (next <= 0) {
-          if (mode === "focus") completeFocusSession();
-          const nextMode: PomodoroMode = mode === "focus" ? "break" : "focus";
-          setMode(nextMode);
-          setState("default");
-          document.title = "Pomodoro";
-          if ("Notification" in window && Notification.permission === "granted") {
-            new Notification(
-              mode === "focus" ? "Focus session complete!" : "Break is over!",
-              { body: mode === "focus" ? "Time for a break." : "Ready to focus again.", icon: "/icon-192.png" },
-            );
-          }
-          return modeDuration(nextMode, settings);
+          // Schedule completion side effects outside the updater via microtask
+          queueMicrotask(() => {
+            const curMode = modeRef.current;
+            const curSettings = settingsRef.current;
+            const curPomos = pomosRef.current;
+            let nextMode: PomodoroMode;
+            if (curMode === "focus") {
+              completeFocusSession();
+              const newCount = curPomos + 1;
+              if (newCount >= curSettings.longBreakInterval) {
+                nextMode = "longBreak";
+                setPomosBeforeLongBreak(0);
+              } else {
+                nextMode = "break";
+                setPomosBeforeLongBreak(newCount);
+              }
+              breakStartRef.current = Date.now();
+            } else {
+              const breakType = curMode as "break" | "longBreak";
+              const breakDuration = curMode === "longBreak"
+                ? curSettings.longBreakDurationMinutes * 60
+                : curSettings.breakDurationMinutes * 60;
+              const breakStart = breakStartRef.current ?? (Date.now() - breakDuration * 1000);
+              addSession({ startTime: breakStart, durationSeconds: breakDuration, type: breakType });
+              syncRef.current.pushSession({
+                dateKey: todayKey(),
+                startTime: breakStart,
+                durationSeconds: breakDuration,
+                isCompleted: true,
+                sessionType: breakType,
+              });
+              breakStartRef.current = null;
+              nextMode = "focus";
+            }
+            setMode(nextMode);
+            setState("default");
+            setRemaining(modeDuration(nextMode, curSettings));
+            document.title = "Pomodoro";
+            const title = curMode === "focus" ? "Focus session complete!" : "Break is over!";
+            const body = curMode === "focus"
+              ? (nextMode === "longBreak" ? "Time for a long break!" : "Time for a break.")
+              : "Ready to focus again.";
+            import("@/app/plugins/LiveActivityPlugin").then(({ LiveActivity }) => {
+              LiveActivity.stop({ mode: curMode }).catch(() => {});
+            }).catch(() => {});
+            import("@capacitor/haptics").then(({ Haptics, ImpactStyle }) => {
+              // Aggressive burst pattern over ~1.5s for unmistakable vibration
+              const fire = () => Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+              fire();
+              setTimeout(fire, 80);
+              setTimeout(fire, 160);
+              setTimeout(fire, 240);
+              // pause
+              setTimeout(fire, 500);
+              setTimeout(fire, 580);
+              setTimeout(fire, 660);
+              setTimeout(fire, 740);
+              // pause
+              setTimeout(fire, 1000);
+              setTimeout(fire, 1080);
+              setTimeout(fire, 1160);
+              setTimeout(fire, 1240);
+            }).catch(() => {});
+            // Also try navigator.vibrate for a long buzz (works on some devices)
+            if ("vibrate" in navigator) {
+              navigator.vibrate([200, 100, 200, 100, 200, 100, 200]);
+            }
+            import("@capacitor/local-notifications").then(({ LocalNotifications }) => {
+              LocalNotifications.schedule({
+                notifications: [{ title, body, id: Date.now(), schedule: { at: new Date() } }],
+              });
+            }).catch(() => {
+              if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body, icon: "/icon-192.png" });
+              }
+            });
+          });
+          return 0;
         }
-        document.title = `${formatTimer(next)} — ${mode === "focus" ? "Focusing" : "Break"}`;
+        const modeLabel = mode === "focus" ? "Focusing" : mode === "longBreak" ? "Long Break" : "Break";
+        document.title = `${formatTimer(next)} — ${modeLabel}`;
         return next;
       });
     }, 1000);
     return () => window.clearInterval(id);
-  }, [state, mode, speed, addFocusSeconds, completeFocusSession]);
+  }, [state, mode, speed, addFocusSeconds, completeFocusSession, pomosBeforeLongBreak, settings]);
 
   const handlePlay = useCallback(() => {
     if (mode === "focus" && state === "default") {
-      sessionStartRef.current = simNowRef.current;
+      sessionStartRef.current = Date.now();
+    } else if (mode === "focus" && state === "paused" && sessionStartRef.current !== null) {
+      const elapsed = modeDuration("focus", settings) - remaining;
+      sessionStartRef.current = Date.now() - elapsed * 1000;
     }
     setState("running");
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, [mode, state]);
+    import("@/app/plugins/LiveActivityPlugin").then(({ LiveActivity }) => {
+      if (state === "paused") {
+        LiveActivity.update({ remainingSeconds: remaining, mode, isRunning: true }).catch(() => {});
+      } else {
+        LiveActivity.start({ remainingSeconds: remaining, mode }).catch(() => {});
+      }
+    }).catch(() => {});
+    import("@capacitor/local-notifications").then(({ LocalNotifications }) => {
+      LocalNotifications.requestPermissions();
+    }).catch(() => {
+      if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+    });
+  }, [mode, state, remaining, settings]);
 
-  const handlePause = useCallback(() => setState("paused"), []);
+  const handlePause = useCallback(() => {
+    setState("paused");
+    import("@/app/plugins/LiveActivityPlugin").then(({ LiveActivity }) => {
+      LiveActivity.update({ remainingSeconds: remaining, mode, isRunning: false }).catch(() => {});
+    }).catch(() => {});
+  }, [mode, remaining]);
 
   const handleStop = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
@@ -511,6 +623,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     }
     setState("default");
     setRemaining(modeDuration(mode, settings));
+    import("@/app/plugins/LiveActivityPlugin").then(({ LiveActivity }) => {
+      LiveActivity.stop({ mode }).catch(() => {});
+    }).catch(() => {});
   }, [mode, remaining, addSession, sync]);
 
   const handleSkip = useCallback(() => {

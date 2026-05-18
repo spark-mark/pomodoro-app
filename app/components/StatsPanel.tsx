@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import StatBox from "./StatBox";
+import { useSwipe } from "./useSwipe";
 import type { SyncStatus } from "./useSync";
 import {
   computeAdaptiveTarget,
@@ -13,6 +14,37 @@ import {
   type PomodoroStats,
   type SessionEntry,
 } from "./pomodoro-types";
+
+function NavHeader({ label, onPrev, onNext, disableNext }: {
+  label: string;
+  onPrev: () => void;
+  onNext: () => void;
+  disableNext?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-[2px]">
+      <button
+        type="button"
+        onClick={onPrev}
+        className="pressable-sm text-[#8f92a9] text-[16px] leading-none px-[4px]"
+      >
+        ‹
+      </button>
+      <span className="text-[#545b7f] text-[13px] tracking-[-0.5px] min-w-[80px] text-center">
+        {label}
+      </span>
+      <button
+        type="button"
+        onClick={onNext}
+        className="pressable-sm text-[#8f92a9] text-[16px] leading-none px-[4px]"
+        style={{ opacity: disableNext ? 0.3 : 1 }}
+        disabled={disableNext}
+      >
+        ›
+      </button>
+    </div>
+  );
+}
 
 export interface StatsPanelProps {
   stats: PomodoroStats;
@@ -72,7 +104,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
 
   return (
-    <div className="bg-[#d8d0ce] h-[100px] rounded-[18px] overflow-hidden w-full relative" data-scrollable-x="">
+    <div className="bg-[#d8d0ce] h-[100px] rounded-[12px] overflow-hidden w-full relative" data-scrollable-x="">
       <div
         ref={scrollRef}
         className="overflow-x-auto scrollbar-hide h-full"
@@ -310,32 +342,22 @@ function WeeklySection({
 
   const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
+  const weekSwipe = useSwipe(
+    () => setWeekOffset(Math.min(0, weekOffset + 1)),
+    () => setWeekOffset(weekOffset - 1),
+  );
+
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[12px]">
+    <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[12px]" {...weekSwipe}>
       {/* Header row: Daily Average + week nav */}
       <div className="flex items-end justify-between">
         <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
-        <div className="flex items-center gap-[2px]">
-          <button
-            type="button"
-            onClick={() => setWeekOffset(weekOffset - 1)}
-            className="pressable-sm text-[#8f92a9] text-[14px] leading-none"
-          >
-            ‹
-          </button>
-          <span className="text-[#545b7f] text-[12px] tracking-[-0.5px] min-w-[64px] text-center">
-            {weekLabel(weekOffset)}
-          </span>
-          <button
-            type="button"
-            onClick={() => setWeekOffset(Math.min(0, weekOffset + 1))}
-            className="pressable-sm text-[#8f92a9] text-[14px] leading-none"
-            style={{ opacity: weekOffset === 0 ? 0.3 : 1 }}
-            disabled={weekOffset === 0}
-          >
-            ›
-          </button>
-        </div>
+        <NavHeader
+          label={weekLabel(weekOffset)}
+          onPrev={() => setWeekOffset(weekOffset - 1)}
+          onNext={() => setWeekOffset(Math.min(0, weekOffset + 1))}
+          disableNext={weekOffset === 0}
+        />
       </div>
 
       {/* Bar chart with Y-axis labels */}
@@ -482,8 +504,8 @@ export function StatsPanelDragZone({
         now={simNow ?? Date.now()}
       />
       <div className="grid grid-cols-2 gap-[12px]">
-        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[8px] items-start">
-          <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[8px] items-start">
+          <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">
             Today&apos;s Pomos
           </p>
           <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
@@ -513,7 +535,7 @@ export function StatsPanelDragZone({
             )}
           </div>
         </div>
-        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px]">
           <StatBox
             title="Today's Focus"
             value={stats.todayFocusMinutes}
@@ -544,26 +566,63 @@ function formatDuration(seconds: number): string {
   return rem > 0 ? `${h}h ${rem}m` : `${h}h`;
 }
 
+function dayLabel(offset: number): string {
+  if (offset === 0) return "Today";
+  if (offset === -1) return "Yesterday";
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+function dateKeyForOffset(offset: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  const y = d.getFullYear();
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const dd = `${d.getDate()}`.padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+
 interface FocusLogProps {
   sessions: SessionEntry[];
+  byDate: Record<string, { focusSeconds: number; sessions?: SessionEntry[] }>;
   onEdit?: (original: SessionEntry, updated: SessionEntry) => void;
   onDelete?: (session: SessionEntry) => void;
 }
 
-function FocusLog({ sessions, onEdit, onDelete }: FocusLogProps) {
+function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLogProps) {
+  const [dayOffset, setDayOffset] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editMinutes, setEditMinutes] = useState(0);
 
-  if (sessions.length === 0) return null;
+  const isToday = dayOffset === 0;
+  const currentDateKey = dateKeyForOffset(dayOffset);
+  const allDaySessions = isToday
+    ? todaySessions
+    : (byDate[currentDateKey] as { sessions?: SessionEntry[] })?.sessions ?? [];
+  const daySessions = allDaySessions.filter((s) => !s.type || s.type === "focus");
 
-  const sorted = [...sessions].sort((a, b) => b.startTime - a.startTime);
+  const sorted = [...daySessions].sort((a, b) => b.startTime - a.startTime);
+
+  const daySwipe = useSwipe(
+    () => { setDayOffset(Math.min(0, dayOffset + 1)); setSelectedIdx(null); setEditingIdx(null); },
+    () => { setDayOffset(dayOffset - 1); setSelectedIdx(null); setEditingIdx(null); },
+  );
 
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[8px]">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
-        Focus Log
-      </p>
+    <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[8px]" {...daySwipe}>
+      <div className="flex items-center justify-between">
+        <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">
+          Focus Log
+        </p>
+        <NavHeader
+          label={dayLabel(dayOffset)}
+          onPrev={() => { setDayOffset(dayOffset - 1); setSelectedIdx(null); setEditingIdx(null); }}
+          onNext={() => { setDayOffset(Math.min(0, dayOffset + 1)); setSelectedIdx(null); setEditingIdx(null); }}
+          disableNext={dayOffset === 0}
+        />
+      </div>
       <div className="flex flex-col">
         {sorted.map((s, i) => {
           const endTime = s.startTime + s.durationSeconds * 1000;
@@ -606,7 +665,7 @@ function FocusLog({ sessions, onEdit, onDelete }: FocusLogProps) {
                   </span>
                 </div>
               </div>
-              {isSelected && !isEditing && (
+              {isSelected && !isEditing && isToday && (
                 <div className="flex gap-[8px] pl-[32px] pb-[12px]">
                   <button
                     type="button"
@@ -670,6 +729,11 @@ function FocusLog({ sessions, onEdit, onDelete }: FocusLogProps) {
             </div>
           );
         })}
+        {sorted.length === 0 && (
+          <p className="text-[#8f92a9] text-[13px] tracking-[-0.5px] py-[8px]">
+            No sessions
+          </p>
+        )}
       </div>
     </div>
   );
@@ -708,20 +772,12 @@ export function StatsPanelScrollable({
 
   return (
     <div className="px-[18px] pb-[32px] flex flex-col gap-[12px]">
-      {/* ── Weekly ── */}
-      <WeeklySection
-        weeklyFocusMinutes={stats.weeklyFocusMinutes}
-        adaptiveTarget={target}
-        byDate={stats.byDate}
-        settings={settings}
-      />
-
       {/* ── Lifetime ── */}
       <div className="grid grid-cols-2 gap-[12px]">
-        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px]">
           <StatBox title="Total Pomos" value={stats.totalPomos} />
         </div>
-        <div className="bg-[#d8d0ce] rounded-[18px] p-[14px]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px]">
           <StatBox
             title="Total Focus Duration"
             value={stats.totalFocusMinutes}
@@ -729,15 +785,23 @@ export function StatsPanelScrollable({
           />
         </div>
       </div>
-      <div className="bg-[#d8d0ce] rounded-[18px] p-[14px] flex flex-col gap-[8px]">
-        <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">
+
+      {/* ── Weekly ── */}
+      <WeeklySection
+        weeklyFocusMinutes={stats.weeklyFocusMinutes}
+        adaptiveTarget={target}
+        byDate={stats.byDate}
+        settings={settings}
+      />
+      <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[8px]">
+        <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">
           Year Overview
         </p>
         <YearHeatmap byDate={stats.byDate} />
       </div>
 
       {/* ── Focus Log ── */}
-      <FocusLog sessions={stats.todaySessions} onEdit={onEditSession} onDelete={onDeleteSession} />
+      <FocusLog sessions={stats.todaySessions} byDate={stats.byDate} onEdit={onEditSession} onDelete={onDeleteSession} />
 
     </div>
   );

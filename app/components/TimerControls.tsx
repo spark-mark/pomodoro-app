@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PomodoroMode, PomodoroState } from "./pomodoro-types";
+import { tapHaptic } from "./haptics";
 
 export interface TimerControlsProps {
   mode: PomodoroMode;
@@ -70,7 +71,7 @@ export default function TimerControls(props: TimerControlsProps) {
         {state === "running" ? (
           <button
             type="button"
-            onClick={onPause}
+            onClick={() => { tapHaptic(); onPause?.(); }}
             aria-label="Pause"
             className="pressable"
           >
@@ -79,7 +80,7 @@ export default function TimerControls(props: TimerControlsProps) {
         ) : (
           <button
             type="button"
-            onClick={onPlay}
+            onClick={() => { tapHaptic(); onPlay?.(); }}
             aria-label={state === "paused" ? "Resume" : "Start"}
             className="pressable"
           >
@@ -90,7 +91,7 @@ export default function TimerControls(props: TimerControlsProps) {
         <AnimatePresence show={state === "paused"}>
           <button
             type="button"
-            onClick={onStop}
+            onClick={() => { tapHaptic(); onStop?.(); }}
             aria-label="Stop"
             className="pressable"
           >
@@ -98,10 +99,10 @@ export default function TimerControls(props: TimerControlsProps) {
           </button>
         </AnimatePresence>
 
-        <AnimatePresence show={state === "default" && mode === "break"}>
+        <AnimatePresence show={state === "default" && (mode === "break" || mode === "longBreak")}>
           <button
             type="button"
-            onClick={onSkip}
+            onClick={() => { tapHaptic(); onSkip?.(); }}
             aria-label="Skip break"
             className="pressable"
           >

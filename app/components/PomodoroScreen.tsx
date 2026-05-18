@@ -5,6 +5,7 @@ import AnimatedTimer from "./AnimatedTimer";
 import { StatsPanelDragZone, StatsPanelScrollable } from "./StatsPanel";
 import SettingsPanel from "./SettingsPanel";
 import TimerControls from "./TimerControls";
+import { tapHaptic } from "./haptics";
 import {
   DEFAULT_SETTINGS,
   DEFAULT_WEEKLY_GOAL_MINUTES,
@@ -102,13 +103,14 @@ function headerColors(mode: PomodoroMode) {
       active: "#545b7f",
       inactive: "rgba(103,114,209,0.28)",
       activeLabel: "Focusing",
-      inactiveLabel: "Short Break",
+      inactiveLabel: "Break",
     };
   }
+  const label = mode === "longBreak" ? "Long Break" : "Short Break";
   return {
     active: "#e6e1e0",
     inactive: "#7b7fab",
-    activeLabel: "Short Break",
+    activeLabel: label,
     inactiveLabel: "Focus",
   };
 }
@@ -408,8 +410,8 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           top: resolvedTop,
           bottom: 0,
           backgroundColor: "#e6e1e0",
-          borderTopLeftRadius: 36,
-          borderTopRightRadius: 36,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
           border: "0.5px solid rgba(133,114,114,0.15)",
           borderBottom: "none",
           boxShadow: expanded
@@ -447,6 +449,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           <button
             type="button"
             onClick={() => {
+              tapHaptic();
               if (!expanded) {
                 onOpenStats?.();
                 setShowSettings(true);
@@ -457,28 +460,49 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
               }
             }}
             aria-label="Settings"
-            className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
-            style={{ top: -65 }}
+            className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center pointer-events-auto"
+            style={{ top: -51 }}
           >
-            <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke={showSettings && expanded ? "#545b7f" : "#8f92a9"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="#545b7f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
               <circle cx="12" cy="12" r="3" />
             </svg>
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={expanded ? onCloseStats : onOpenStats}
-            aria-label={expanded ? "Close stats" : "Open stats"}
-            className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[18px] pointer-events-auto"
-            style={{ top: -65 }}
-          >
-            <img
-              src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
-              alt=""
-              className="size-[31px]"
-            />
-          </button>
+          <div className="absolute right-[20px] flex items-center gap-[8px] pointer-events-auto" style={{ top: -65 }}>
+            <button
+              type="button"
+              onClick={() => {
+                tapHaptic();
+                if (!expanded) onOpenStats?.();
+                setShowSettings((v) => !v);
+              }}
+              aria-label="Settings"
+              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[12px]"
+            >
+              <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="#545b7f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                tapHaptic();
+                setShowSettings(false);
+                if (expanded) onCloseStats?.();
+                else onOpenStats?.();
+              }}
+              aria-label={expanded ? "Close stats" : "Open stats"}
+              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[12px]"
+            >
+              <img
+                src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
+                alt=""
+                className="size-[31px]"
+              />
+            </button>
+          </div>
         )}
 
         {/* Drag zone: handle + timeline + daily stats — dragging anywhere here resizes the panel */}

@@ -1,7 +1,12 @@
 import type { TempoPage, TempoStoryboard } from 'tempo-sdk';
+import { SessionProvider } from 'next-auth/react';
 import PomodoroScreen from '@/app/components/PomodoroScreen';
 import InteractivePomodoro from '@/app/components/InteractivePomodoro';
 import type { PomodoroStats, SessionEntry } from '@/app/components/pomodoro-types';
+
+const Wrap = ({ children }: { children: React.ReactNode }) => (
+  <SessionProvider>{children}</SessionProvider>
+);
 
 const page: TempoPage = {
   name: "Mobile App",
@@ -25,6 +30,7 @@ const EMPTY_STATS: PomodoroStats = {
   totalFocusMinutes: 0,
   todaySessions: [],
   weeklyFocusMinutes: [0, 0, 0, 0, 0, 0, 0],
+  byDate: {},
 };
 
 // Morning session — 2 pomos
@@ -39,6 +45,7 @@ const MORNING_STATS: PomodoroStats = {
   totalFocusMinutes: 480,
   todaySessions: MORNING_SESSIONS,
   weeklyFocusMinutes: [25, 75, 100, 50, 125, 60, 50],
+  byDate: {},
 };
 
 // Full study day — 10 pomos across the day
@@ -61,11 +68,12 @@ const FULL_DAY_STATS: PomodoroStats = {
   totalFocusMinutes: 6755,
   todaySessions: FULL_DAY_SESSIONS,
   weeklyFocusMinutes: [120, 180, 240, 200, 300, 360, 250],
+  byDate: {},
 };
 
 export const Interactive: TempoStoryboard = {
   render: () => (
-    <InteractivePomodoro storageKey="pomodoro-mobile.canvas" speed={30} />
+    <Wrap><InteractivePomodoro storageKey="pomodoro-mobile.canvas" speed={30} /></Wrap>
   ),
   name: "Interactive (30× speed)",
   layout: { x: 0, y: 0, width: 393, height: 852 },
@@ -75,13 +83,13 @@ export const Interactive: TempoStoryboard = {
 
 export const EmptyCollapsed: TempoStoryboard = {
   render: () => (
-    <PomodoroScreen
+    <Wrap><PomodoroScreen
       mode="focus"
       state="default"
       remaining={1500}
       stats={EMPTY_STATS}
       weeklyGoalMinutes={1050}
-    />
+    /></Wrap>
   ),
   name: "Empty — Collapsed",
   layout: { x: 453, y: 0, width: 393, height: 852 },
@@ -89,14 +97,14 @@ export const EmptyCollapsed: TempoStoryboard = {
 
 export const EmptyExpanded: TempoStoryboard = {
   render: () => (
-    <PomodoroScreen
+    <Wrap><PomodoroScreen
       mode="focus"
       state="default"
       remaining={1500}
       stats={EMPTY_STATS}
       weeklyGoalMinutes={1050}
       expanded
-    />
+    /></Wrap>
   ),
   name: "Empty — Expanded",
   layout: { x: 906, y: 0, width: 393, height: 852 },
@@ -104,14 +112,14 @@ export const EmptyExpanded: TempoStoryboard = {
 
 export const MorningCollapsed: TempoStoryboard = {
   render: () => (
-    <PomodoroScreen
+    <Wrap><PomodoroScreen
       mode="focus"
       state="default"
       remaining={1500}
       stats={MORNING_STATS}
       weeklyGoalMinutes={1050}
       simNow={todayAt(10, 15)}
-    />
+    /></Wrap>
   ),
   name: "Morning (2 pomos) — Collapsed",
   layout: { x: 1359, y: 0, width: 393, height: 852 },
@@ -119,7 +127,7 @@ export const MorningCollapsed: TempoStoryboard = {
 
 export const MorningExpanded: TempoStoryboard = {
   render: () => (
-    <PomodoroScreen
+    <Wrap><PomodoroScreen
       mode="focus"
       state="default"
       remaining={1500}
@@ -127,7 +135,7 @@ export const MorningExpanded: TempoStoryboard = {
       weeklyGoalMinutes={1050}
       simNow={todayAt(10, 15)}
       expanded
-    />
+    /></Wrap>
   ),
   name: "Morning (2 pomos) — Expanded",
   layout: { x: 1812, y: 0, width: 393, height: 852 },
@@ -135,14 +143,14 @@ export const MorningExpanded: TempoStoryboard = {
 
 export const FullDayCollapsed: TempoStoryboard = {
   render: () => (
-    <PomodoroScreen
+    <Wrap><PomodoroScreen
       mode="focus"
       state="default"
       remaining={1500}
       stats={FULL_DAY_STATS}
       weeklyGoalMinutes={1050}
       simNow={todayAt(17, 0)}
-    />
+    /></Wrap>
   ),
   name: "Full Day (10 pomos) — Collapsed",
   layout: { x: 0, y: 912, width: 393, height: 852 },
@@ -150,7 +158,7 @@ export const FullDayCollapsed: TempoStoryboard = {
 
 export const FullDayExpanded: TempoStoryboard = {
   render: () => (
-    <PomodoroScreen
+    <Wrap><PomodoroScreen
       mode="focus"
       state="default"
       remaining={1500}
@@ -158,7 +166,7 @@ export const FullDayExpanded: TempoStoryboard = {
       weeklyGoalMinutes={1050}
       simNow={todayAt(17, 0)}
       expanded
-    />
+    /></Wrap>
   ),
   name: "Full Day (10 pomos) — Expanded",
   layout: { x: 453, y: 912, width: 393, height: 852 },

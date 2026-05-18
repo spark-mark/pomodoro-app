@@ -2,6 +2,7 @@
 
 import { type PomodoroSettings, DEFAULT_SETTINGS } from "./pomodoro-types";
 import { AccountSection } from "./AuthUI";
+import { tapHaptic } from "./haptics";
 import type { SyncStatus } from "./useSync";
 
 interface SettingRowProps {
@@ -21,7 +22,7 @@ function SettingRow({ label, value, unit, min, max, step, onChange }: SettingRow
       <div className="flex items-center gap-[10px]">
         <button
           type="button"
-          onClick={() => onChange(Math.max(min, value - step))}
+          onClick={() => { tapHaptic(); onChange(Math.max(min, value - step)); }}
           className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
         >
           −
@@ -31,7 +32,7 @@ function SettingRow({ label, value, unit, min, max, step, onChange }: SettingRow
         </span>
         <button
           type="button"
-          onClick={() => onChange(Math.min(max, value + step))}
+          onClick={() => { tapHaptic(); onChange(Math.min(max, value + step)); }}
           className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
         >
           +
@@ -91,7 +92,7 @@ export default function SettingsPanel({ settings, onChange, userEmail, syncStatu
           onChange={(v) => update("focusDurationMinutes", v)}
         />
         <SettingRow
-          label="Break duration"
+          label="Short break"
           value={settings.breakDurationMinutes}
           unit="min"
           min={1}
@@ -99,12 +100,30 @@ export default function SettingsPanel({ settings, onChange, userEmail, syncStatu
           step={1}
           onChange={(v) => update("breakDurationMinutes", v)}
         />
+        <SettingRow
+          label="Long break"
+          value={settings.longBreakDurationMinutes ?? 15}
+          unit="min"
+          min={5}
+          max={60}
+          step={5}
+          onChange={(v) => update("longBreakDurationMinutes", v)}
+        />
+        <SettingRow
+          label="Long break every"
+          value={settings.longBreakInterval ?? 3}
+          unit="pomos"
+          min={2}
+          max={8}
+          step={1}
+          onChange={(v) => update("longBreakInterval", v)}
+        />
         <div className="flex items-center justify-between py-[14px]">
           <span className="text-[#545b7f] text-[14px] tracking-[-0.5px]">End of day</span>
           <div className="flex items-center gap-[10px]">
             <button
               type="button"
-              onClick={() => update("endOfDayHour", Math.max(18, settings.endOfDayHour - 0.5))}
+              onClick={() => { tapHaptic(); update("endOfDayHour", Math.max(18, settings.endOfDayHour - 0.5)); }}
               className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
             >
               −
@@ -114,7 +133,7 @@ export default function SettingsPanel({ settings, onChange, userEmail, syncStatu
             </span>
             <button
               type="button"
-              onClick={() => update("endOfDayHour", Math.min(24, settings.endOfDayHour + 0.5))}
+              onClick={() => { tapHaptic(); update("endOfDayHour", Math.min(24, settings.endOfDayHour + 0.5)); }}
               className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
             >
               +

@@ -9,6 +9,7 @@ interface IncomingSession {
   startTime: number;
   durationSeconds: number;
   isCompleted: boolean;
+  sessionType: string;
 }
 
 export async function POST(req: Request) {
@@ -42,12 +43,13 @@ export async function POST(req: Request) {
         ? Math.floor(r.durationSeconds)
         : NaN;
     const isCompleted = Boolean(r.isCompleted);
+    const sessionType = typeof r.sessionType === "string" && ["focus", "break", "longBreak"].includes(r.sessionType) ? r.sessionType : "focus";
     if (
       dateKey &&
       Number.isFinite(startTime) &&
       Number.isFinite(durationSeconds)
     ) {
-      incoming.push({ dateKey, startTime, durationSeconds, isCompleted });
+      incoming.push({ dateKey, startTime, durationSeconds, isCompleted, sessionType });
     }
   }
 

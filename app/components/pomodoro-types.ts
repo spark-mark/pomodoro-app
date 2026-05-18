@@ -1,9 +1,10 @@
-export type PomodoroMode = "focus" | "break";
+export type PomodoroMode = "focus" | "break" | "longBreak";
 export type PomodoroState = "default" | "running" | "paused";
 
 export interface SessionEntry {
   startTime: number;
   durationSeconds: number;
+  type?: "focus" | "break" | "longBreak";
 }
 
 export interface PomodoroStats {
@@ -29,6 +30,8 @@ export interface PomodoroSettings {
   endOfDayHour: number;
   focusDurationMinutes: number;
   breakDurationMinutes: number;
+  longBreakDurationMinutes: number;
+  longBreakInterval: number;
 }
 
 export const DEFAULT_SETTINGS: PomodoroSettings = {
@@ -36,6 +39,8 @@ export const DEFAULT_SETTINGS: PomodoroSettings = {
   endOfDayHour: 23,
   focusDurationMinutes: 25,
   breakDurationMinutes: 5,
+  longBreakDurationMinutes: 15,
+  longBreakInterval: 3,
 };
 
 export interface AdaptiveTarget {
@@ -52,7 +57,8 @@ export function computeAdaptiveTarget(
   settings: PomodoroSettings = DEFAULT_SETTINGS,
 ): AdaptiveTarget {
   const focusDurationMinutes = settings.focusDurationMinutes;
-  const pomoCycleMinutes = focusDurationMinutes + settings.breakDurationMinutes;
+  const avgBreak = ((settings.longBreakInterval - 1) * settings.breakDurationMinutes + settings.longBreakDurationMinutes) / settings.longBreakInterval;
+  const pomoCycleMinutes = focusDurationMinutes + avgBreak;
 
   const completedMinutes = weeklyFocusMinutes.reduce((sum, m) => sum + m, 0);
   const effectiveGoal = weeklyGoalMinutes + carryoverMinutes;
@@ -73,9 +79,9 @@ export function computeAdaptiveTarget(
 
 export function modeDuration(mode: PomodoroMode, settings?: PomodoroSettings): number {
   const s = settings ?? DEFAULT_SETTINGS;
-  return mode === "focus"
-    ? s.focusDurationMinutes * 60
-    : s.breakDurationMinutes * 60;
+  if (mode === "focus") return s.focusDurationMinutes * 60;
+  if (mode === "longBreak") return s.longBreakDurationMinutes * 60;
+  return s.breakDurationMinutes * 60;
 }
 
 export function formatTimer(seconds: number): string {

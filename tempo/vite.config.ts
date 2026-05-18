@@ -21,6 +21,9 @@ export default defineConfig(async () => {
         projectDiscovery: "lazy",
       }),
     ],
+  define: {
+    "process.env": {},
+  },
   server: {
     fs: {
       allow: [".."],

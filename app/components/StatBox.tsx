@@ -9,18 +9,18 @@ export default function StatBox(props: StatBoxProps) {
 
   return (
     <div className="flex flex-col gap-[8px] items-start">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px]">{title}</p>
+      <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">{title}</p>
       {format === "time" ? (
         <div className="flex gap-[3px] items-baseline text-[#545b7f] whitespace-nowrap leading-none">
-          <span className="text-[30px] tracking-[-1.5px]">
+          <span className="text-[34px] tracking-[-1.5px]">
             {Math.floor(value / 60)}
           </span>
-          <span className="text-[13px] tracking-[-0.65px]">h</span>
-          <span className="text-[30px] tracking-[-1.5px]">{value % 60}</span>
-          <span className="text-[13px] tracking-[-0.65px]">m</span>
+          <span className="text-[14px] tracking-[-0.65px]">h</span>
+          <span className="text-[34px] tracking-[-1.5px]">{value % 60}</span>
+          <span className="text-[14px] tracking-[-0.65px]">m</span>
         </div>
       ) : (
-        <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
+        <p className="text-[#545b7f] text-[34px] tracking-[-1.5px] leading-none">
           {value}
         </p>
       )}

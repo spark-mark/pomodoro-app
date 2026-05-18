@@ -11,6 +11,7 @@ interface ServerSession {
   startTime: number;
   durationSeconds: number;
   isCompleted: boolean;
+  sessionType?: string;
 }
 
 interface PersistedDayEntry {

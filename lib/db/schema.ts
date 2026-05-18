@@ -26,6 +26,7 @@ export const sessions = pgTable("sessions", {
   startTime: bigint("start_time", { mode: "number" }).notNull(),
   durationSeconds: integer("duration_seconds").notNull(),
   isCompleted: boolean("is_completed").notNull().default(false),
+  sessionType: text("session_type").notNull().default("focus"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

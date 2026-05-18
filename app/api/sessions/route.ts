@@ -44,6 +44,7 @@ export async function POST(req: Request) {
     startTime?: unknown;
     durationSeconds?: unknown;
     isCompleted?: unknown;
+    sessionType?: unknown;
   };
 
   const dateKey = typeof data.dateKey === "string" ? data.dateKey : "";
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
       ? Math.floor(data.durationSeconds)
       : NaN;
   const isCompleted = Boolean(data.isCompleted);
+  const sessionType = typeof data.sessionType === "string" && ["focus", "break", "longBreak"].includes(data.sessionType) ? data.sessionType : "focus";
 
   if (!dateKey || !Number.isFinite(startTime) || !Number.isFinite(durationSeconds)) {
     return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
@@ -67,6 +69,7 @@ export async function POST(req: Request) {
       startTime,
       durationSeconds,
       isCompleted,
+      sessionType,
     })
     .returning();
 
