@@ -123,7 +123,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
           {sessions.map((session, i) => (
             <div
               key={`s-${i}`}
-              className="absolute bg-[#545b7f] rounded-[4px]"
+              className="absolute bg-[#545b7f] rounded-[1px]"
               style={{
                 left: `${(hoursOfDay(session.startTime) / 24) * 100}%`,
                 top: "22px",
@@ -137,7 +137,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
           {currentSessionStart !== null && (
             <>
               <div
-                className="absolute border border-dashed border-[#545b7f] rounded-[4px] shadow-[0px_0px_14.9px_1px_rgba(194,201,220,0.67)]"
+                className="absolute border border-dashed border-[#545b7f] rounded-[1px] shadow-[0px_0px_14.9px_1px_rgba(194,201,220,0.67)]"
                 style={{
                   left: `${(inProgressStartHour / 24) * 100}%`,
                   top: "22px",
@@ -147,7 +147,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
               />
               {currentSessionElapsed > 0 && (
                 <div
-                  className="absolute bg-[#545b7f] rounded-[4px]"
+                  className="absolute bg-[#545b7f] rounded-[1px]"
                   style={{
                     left: `${(inProgressStartHour / 24) * 100}%`,
                     top: "22px",
@@ -508,13 +508,13 @@ export function StatsPanelDragZone({
                 {Array.from({ length: stats.todayPomos }).map((_, i) => (
                   <div
                     key={`s-${i}`}
-                    className="size-[18px] rounded-[4px] bg-[#545b7f]"
+                    className="size-[18px] rounded-[1px] bg-[#545b7f]"
                   />
                 ))}
                 {Array.from({ length: remainingPomos }).map((_, i) => (
                   <div
                     key={`d-${i}`}
-                    className="size-[18px] rounded-[4px]"
+                    className="size-[18px] rounded-[1px]"
                     style={{
                       border: "1.5px dashed #a98461",
                       background: "transparent",
