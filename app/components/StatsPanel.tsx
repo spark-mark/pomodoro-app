@@ -332,13 +332,8 @@ function WeeklySection({
   const todayDayIndex = isCurrentWeek ? adaptiveTarget.todayDayIndex : -1;
   const focusMin = settings?.focusDurationMinutes ?? 25;
 
-  const todayDoneMinutes = isCurrentWeek ? (displayMinutes[todayDayIndex] ?? 0) : 0;
-  const todayCappedMinutes = adaptiveTarget.suggestedPomos * focusMin;
-  const todayTargetHours = (todayDoneMinutes + todayCappedMinutes) / 60;
-  const todayTargetPct = isCurrentWeek ? Math.min(1, todayTargetHours / MAX_HOURS) * 100 : 0;
-
   const adaptiveDailyHours = adaptiveTarget.dailyTargetMinutes / 60;
-  const futureTargetPct = isCurrentWeek ? Math.min(1, adaptiveDailyHours / MAX_HOURS) * 100 : 0;
+  const targetPct = isCurrentWeek ? Math.min(1, adaptiveDailyHours / MAX_HOURS) * 100 : 0;
 
   const [tooltipDay, setTooltipDay] = useState<number | null>(null);
 
@@ -390,9 +385,8 @@ function WeeklySection({
                 const actualPct = Math.min(1, d.hours / MAX_HOURS) * 100;
                 const isToday = i === todayDayIndex;
                 const isFuture = i > todayDayIndex;
-                const barTargetHours = isToday ? todayTargetHours : adaptiveDailyHours;
                 const actualMin = Math.round(d.hours * 60);
-                const targetMin = Math.round(barTargetHours * 60);
+                const targetMin = Math.round(adaptiveDailyHours * 60);
                 const showTooltip = tooltipDay === i;
                 return (
                   <div
@@ -403,7 +397,7 @@ function WeeklySection({
                     {showTooltip && (actualMin > 0 || ((isToday || isFuture) && targetMin > 0)) && (
                       <div
                         className="absolute left-1/2 -translate-x-1/2 z-20 bg-[#a98461] text-white text-[10px] tracking-[-0.3px] rounded-[6px] px-[6px] py-[3px] whitespace-nowrap pointer-events-none"
-                        style={{ bottom: `${Math.max(actualPct, isToday ? todayTargetPct : futureTargetPct) + 3}%` }}
+                        style={{ bottom: `${Math.max(actualPct, targetPct) + 3}%` }}
                       >
                         {actualMin > 0 && <span>{Math.floor(actualMin / 60)}h{actualMin % 60 > 0 ? ` ${actualMin % 60}m` : ""}</span>}
                         {actualMin > 0 && (isToday || isFuture) && " / "}
@@ -416,22 +410,12 @@ function WeeklySection({
                         style={{ height: `${actualPct}%` }}
                       />
                     )}
-                    {isToday && todayTargetPct > actualPct && (
+                    {(isToday || isFuture) && targetPct > actualPct && (
                       <div
                         className="absolute inset-x-0 rounded-[3px]"
                         style={{
                           bottom: `${actualPct}%`,
-                          height: `${todayTargetPct - actualPct}%`,
-                          border: DASHED_AMBER_BORDER,
-                          background: "transparent",
-                        }}
-                      />
-                    )}
-                    {isFuture && futureTargetPct > 0 && (
-                      <div
-                        className="absolute inset-x-0 bottom-0 rounded-[3px]"
-                        style={{
-                          height: `${futureTargetPct}%`,
+                          height: `${targetPct - actualPct}%`,
                           border: DASHED_AMBER_BORDER,
                           background: "transparent",
                         }}
