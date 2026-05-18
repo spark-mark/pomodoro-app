@@ -383,8 +383,8 @@ function WeeklySection({
             <div className="absolute inset-0 flex items-end justify-between gap-[6px] px-[2px]">
               {days.map((d, i) => {
                 const actualPct = Math.min(1, d.hours / MAX_HOURS) * 100;
-                const isToday = i === todayDayIndex;
-                const isFuture = i > todayDayIndex;
+                const isToday = isCurrentWeek && i === todayDayIndex;
+                const isFuture = isCurrentWeek && i > todayDayIndex;
                 const actualMin = Math.round(d.hours * 60);
                 const targetMin = Math.round(adaptiveDailyHours * 60);
                 const showTooltip = tooltipDay === i;
