@@ -342,19 +342,9 @@ function WeeklySection({
 
   return (
     <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[12px]" {...weekSwipe}>
-      {/* Header row: Daily Average hero + week nav */}
-      <div className="flex items-start justify-between">
-        <div className="flex flex-col gap-[2px]">
-          <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">Daily Average</p>
-          <div className="flex gap-[3px] items-baseline text-[#545b7f] whitespace-nowrap leading-none">
-            <span className="text-[42px] font-semibold tracking-[-2px]">
-              {Math.floor(dailyAverageMinutes / 60)}
-            </span>
-            <span className="text-[16px] tracking-[-0.65px]">h</span>
-            <span className="text-[42px] font-semibold tracking-[-2px]">{dailyAverageMinutes % 60}</span>
-            <span className="text-[16px] tracking-[-0.65px]">min</span>
-          </div>
-        </div>
+      {/* Header row: Daily Average + week nav */}
+      <div className="flex items-end justify-between">
+        <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
         <NavHeader
           label={weekLabel(weekOffset)}
           onPrev={() => setWeekOffset(weekOffset - 1)}
@@ -419,13 +409,15 @@ function WeeklySection({
                 );
               })}
             </div>
-            {/* Average line — dashed with label */}
+            {/* Average line — dashed */}
             <div
               className="absolute left-0 right-0 pointer-events-none"
-              style={{ bottom: `${avgBottomPct}%` }}
-            >
-              <div className="border-t-[1.5px] border-dashed border-[#a98461]/60 w-full" />
-            </div>
+              style={{
+                bottom: `${avgBottomPct}%`,
+                height: "1px",
+                backgroundImage: "repeating-linear-gradient(to right, #a98461 0, #a98461 6px, transparent 6px, transparent 12px)",
+              }}
+            />
           </div>
           <div className="flex items-start justify-between mt-1 px-[2px]">
             {DAY_LABELS.map((label, i) => (
@@ -451,15 +443,17 @@ function WeeklySection({
               {h}
             </div>
           ))}
-          <div
-            className="absolute left-[4px] text-[10px] text-[#a98461] tracking-[-0.3px] leading-none"
-            style={{
-              bottom: `${avgBottomPct}%`,
-              transform: "translateY(50%)",
-            }}
-          >
-            avg
-          </div>
+          {avgBottomPct > 5 && (
+            <div
+              className="absolute left-[4px] text-[10px] text-[#a98461] tracking-[-0.3px] leading-none"
+              style={{
+                bottom: `${avgBottomPct}%`,
+                transform: "translateY(50%)",
+              }}
+            >
+              avg
+            </div>
+          )}
         </div>
       </div>
 
