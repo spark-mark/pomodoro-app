@@ -396,7 +396,7 @@ function WeeklySection({
                     )}
                     {(isToday || isFuture) && targetPct > actualPct && (
                       <div
-                        className="absolute inset-x-0 rounded-[1px]"
+                        className="absolute inset-x-0 rounded-[2px]"
                         style={{
                           bottom: `${actualPct}%`,
                           height: `${targetPct - actualPct}%`,
