@@ -534,27 +534,27 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             borderTopRightRadius: 24,
           }}
         >
-          {/* Debug: inverted corners in red so we can see placement */}
+          {/* Concave corners — form rounded gateway opening for content */}
           <div
             className="absolute"
             style={{
-              bottom: -10,
-              left: 14,
-              width: 10,
-              height: 10,
+              bottom: -14,
+              left: 0,
+              width: 14,
+              height: 14,
               background: "red",
-              borderTopLeftRadius: 10,
+              borderBottomRightRadius: 14,
             }}
           />
           <div
             className="absolute"
             style={{
-              bottom: -10,
-              right: 14,
-              width: 10,
-              height: 10,
+              bottom: -14,
+              right: 0,
+              width: 14,
+              height: 14,
               background: "red",
-              borderTopRightRadius: 10,
+              borderBottomLeftRadius: 14,
             }}
           />
         </div>
