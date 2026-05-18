@@ -511,6 +511,17 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           </div>
         )}
 
+        {/* Fixed top edge — content scrolls behind this to preserve rounded gap */}
+        <div
+          className="absolute inset-x-0 top-0 z-10 pointer-events-none"
+          style={{
+            height: 18,
+            background: "#e6e1e0",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+          }}
+        />
+
         {/* Unified scrollable panel — overscroll at top triggers collapse */}
         <div
           ref={scrollRef}
@@ -522,7 +533,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           }}
         >
           {/* Drag handle bar */}
-          <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing">
+          <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing relative z-20">
             <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
           </div>
 
