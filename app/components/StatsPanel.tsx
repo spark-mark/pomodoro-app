@@ -267,7 +267,7 @@ function YearHeatmap({ byDate }: { byDate: Record<string, { focusSeconds: number
 const MAX_HOURS = 8;
 const GRID_HOURS = [0, 2, 4, 6, 8];
 
-const DAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
 function weekLabel(offset: number): string {
   if (offset === 0) return "This week";
@@ -330,8 +330,6 @@ function WeeklySection({
   const avgBottomPct = Math.min(1, avgHours / MAX_HOURS) * 100;
   const isCurrentWeek = weekOffset === 0;
   const todayDayIndex = isCurrentWeek ? adaptiveTarget.todayDayIndex : -1;
-  const focusMin = settings?.focusDurationMinutes ?? 25;
-
   const adaptiveDailyHours = adaptiveTarget.dailyTargetMinutes / 60;
   const targetPct = isCurrentWeek ? Math.min(1, adaptiveDailyHours / MAX_HOURS) * 100 : 0;
 
@@ -344,9 +342,19 @@ function WeeklySection({
 
   return (
     <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[12px]" {...weekSwipe}>
-      {/* Header row: Daily Average + week nav */}
-      <div className="flex items-end justify-between">
-        <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
+      {/* Header row: Daily Average hero + week nav */}
+      <div className="flex items-start justify-between">
+        <div className="flex flex-col gap-[2px]">
+          <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">Daily Average</p>
+          <div className="flex gap-[3px] items-baseline text-[#545b7f] whitespace-nowrap leading-none">
+            <span className="text-[42px] font-semibold tracking-[-2px]">
+              {Math.floor(dailyAverageMinutes / 60)}
+            </span>
+            <span className="text-[16px] tracking-[-0.65px]">h</span>
+            <span className="text-[42px] font-semibold tracking-[-2px]">{dailyAverageMinutes % 60}</span>
+            <span className="text-[16px] tracking-[-0.65px]">min</span>
+          </div>
+        </div>
         <NavHeader
           label={weekLabel(weekOffset)}
           onPrev={() => setWeekOffset(weekOffset - 1)}
@@ -355,32 +363,18 @@ function WeeklySection({
         />
       </div>
 
-      {/* Bar chart with Y-axis labels */}
+      {/* Bar chart with Y-axis on the right */}
       <div className="flex">
-        <div className="relative h-[120px] w-[24px] shrink-0">
-          {GRID_HOURS.map((h) => (
-            <div
-              key={h}
-              className="absolute right-[4px] text-[10px] text-[#8f92a9] tracking-[-0.5px] leading-none"
-              style={{
-                bottom: `${(h / MAX_HOURS) * 100}%`,
-                transform: "translateY(50%)",
-              }}
-            >
-              {h}h
-            </div>
-          ))}
-        </div>
         <div className="flex-1 min-w-0">
           <div className="relative h-[120px] w-full">
             {GRID_HOURS.map((h) => (
               <div
                 key={h}
-                className="absolute left-0 right-0 border-t border-dotted border-[#8f92a9]/40"
+                className="absolute left-0 right-0 border-t border-[#8f92a9]/25"
                 style={{ bottom: `${(h / MAX_HOURS) * 100}%` }}
               />
             ))}
-            <div className="absolute inset-0 flex items-end justify-between gap-[6px] px-[2px]">
+            <div className="absolute inset-0 flex items-end justify-between gap-[3px] px-[2px]">
               {days.map((d, i) => {
                 const actualPct = Math.min(1, d.hours / MAX_HOURS) * 100;
                 const isToday = isCurrentWeek && i === todayDayIndex;
@@ -390,7 +384,7 @@ function WeeklySection({
                 const showTooltip = tooltipDay === i;
                 return (
                   <div
-                    key={d.label}
+                    key={i}
                     className="flex-1 relative h-full"
                     onClick={() => setTooltipDay(showTooltip ? null : i)}
                   >
@@ -406,13 +400,13 @@ function WeeklySection({
                     )}
                     {!isFuture && (
                       <div
-                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[3px]"
+                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[1px]"
                         style={{ height: `${actualPct}%` }}
                       />
                     )}
                     {(isToday || isFuture) && targetPct > actualPct && (
                       <div
-                        className="absolute inset-x-0 rounded-[3px]"
+                        className="absolute inset-x-0 rounded-[1px]"
                         style={{
                           bottom: `${actualPct}%`,
                           height: `${targetPct - actualPct}%`,
@@ -425,20 +419,46 @@ function WeeklySection({
                 );
               })}
             </div>
+            {/* Average line — dashed with label */}
             <div
-              className="absolute left-0 right-0 border-t border-[#a98461]/60"
+              className="absolute left-0 right-0 pointer-events-none"
               style={{ bottom: `${avgBottomPct}%` }}
-            />
+            >
+              <div className="border-t-[1.5px] border-dashed border-[#a98461]/60 w-full" />
+            </div>
           </div>
           <div className="flex items-start justify-between mt-1 px-[2px]">
-            {days.map((d) => (
+            {DAY_LABELS.map((label, i) => (
               <span
-                key={d.label}
-                className="text-[11px] text-[#8f92a9] tracking-[-0.5px] flex-1 text-center"
+                key={i}
+                className="text-[11px] text-[#8f92a9]/70 tracking-[-0.3px] flex-1 text-center"
               >
-                {d.label}
+                {label}
               </span>
             ))}
+          </div>
+        </div>
+        <div className="relative h-[120px] w-[24px] shrink-0">
+          {GRID_HOURS.map((h) => (
+            <div
+              key={h}
+              className="absolute left-[4px] text-[10px] text-[#8f92a9] tracking-[-0.5px] leading-none"
+              style={{
+                bottom: `${(h / MAX_HOURS) * 100}%`,
+                transform: "translateY(50%)",
+              }}
+            >
+              {h}
+            </div>
+          ))}
+          <div
+            className="absolute left-[4px] text-[10px] text-[#a98461] tracking-[-0.3px] leading-none"
+            style={{
+              bottom: `${avgBottomPct}%`,
+              transform: "translateY(50%)",
+            }}
+          >
+            avg
           </div>
         </div>
       </div>
