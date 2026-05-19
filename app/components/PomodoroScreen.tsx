@@ -324,7 +324,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           ? "fixed inset-0 overflow-hidden"
           : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px]"
       }
-      style={{ backgroundColor: "var(--color-bg-page)" }}
+      style={{ backgroundColor: "#e6e1e0" }}
     >
       {/* ── Background layers (cross-fade by mode only) ── */}
       <div
@@ -415,9 +415,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         style={{
           top: resolvedTop,
           bottom: 0,
-          backgroundColor: "var(--color-bg-page)",
-          borderTopLeftRadius: "var(--radius-xl)",
-          borderTopRightRadius: "var(--radius-xl)",
+          backgroundColor: "#e6e1e0",
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
           border: "0.5px solid rgba(133,114,114,0.15)",
           borderBottom: "none",
           boxShadow: expanded
@@ -425,7 +425,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             : "0px 0px 45px 0px rgba(133,114,114,0.25)",
           transition: isDragging
             ? "none"
-            : "top 500ms var(--ease-out), height 500ms var(--ease-out), border-radius 500ms var(--ease-out), box-shadow 500ms var(--ease-out)",
+            : "top 500ms cubic-bezier(0.23,1,0.32,1), height 500ms cubic-bezier(0.23,1,0.32,1), border-radius 500ms cubic-bezier(0.23,1,0.32,1), box-shadow 500ms cubic-bezier(0.23,1,0.32,1)",
         }}
       >
         {/* Controls — anchored to panel, fade with drag */}
@@ -484,7 +484,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
                 setShowSettings((v) => !v);
               }}
               aria-label="Settings"
-              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[var(--radius-md)]"
+              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[12px]"
             >
               <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="#545b7f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -500,7 +500,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
                 else onOpenStats?.();
               }}
               aria-label={expanded ? "Close stats" : "Open stats"}
-              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[var(--radius-md)]"
+              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[12px]"
             >
               <img
                 src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
@@ -517,9 +517,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           style={{
             top: -1,
             height: 22,
-            background: "var(--color-bg-page)",
-            borderTopLeftRadius: "var(--radius-xl)",
-            borderTopRightRadius: "var(--radius-xl)",
+            background: "#e6e1e0",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
           }}
         />
 
@@ -529,9 +529,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           style={{
             top: -1,
             height: 22,
-            background: "var(--color-bg-page)",
-            borderTopLeftRadius: "var(--radius-xl)",
-            borderTopRightRadius: "var(--radius-xl)",
+            background: "#e6e1e0",
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
           }}
         >
           {/* Concave corners — radial gradient cutout for rounded content opening */}
@@ -542,7 +542,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
               left: 18,
               width: 14,
               height: 14,
-              background: "radial-gradient(circle at 100% 100%, transparent 14px, var(--color-bg-page) 14px)",
+              background: "radial-gradient(circle at 100% 100%, transparent 14px, #e6e1e0 14px)",
             }}
           />
           <div
@@ -552,7 +552,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
               right: 18,
               width: 14,
               height: 14,
-              background: "radial-gradient(circle at 0% 100%, transparent 14px, var(--color-bg-page) 14px)",
+              background: "radial-gradient(circle at 0% 100%, transparent 14px, #e6e1e0 14px)",
             }}
           />
         </div>
@@ -569,7 +569,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         >
           {/* Drag handle bar */}
           <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing relative z-30">
-            <div className="w-[36px] h-[4px] rounded-full bg-[var(--color-border-divider)]/50" />
+            <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
           </div>
 
           {showSettings ? (

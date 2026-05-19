@@ -26,17 +26,17 @@ function NavHeader({ label, onPrev, onNext, disableNext }: {
       <button
         type="button"
         onClick={onPrev}
-        className="pressable-sm text-[var(--color-text-secondary)] text-[16px] leading-none px-[4px]"
+        className="pressable-sm text-[#8f92a9] text-[16px] leading-none px-[4px]"
       >
         ‹
       </button>
-      <span className="text-[var(--color-text-primary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] min-w-[80px] text-center">
+      <span className="text-[#545b7f] text-[13px] tracking-[-0.5px] min-w-[80px] text-center">
         {label}
       </span>
       <button
         type="button"
         onClick={onNext}
-        className="pressable-sm text-[var(--color-text-secondary)] text-[16px] leading-none px-[4px]"
+        className="pressable-sm text-[#8f92a9] text-[16px] leading-none px-[4px]"
         style={{ opacity: disableNext ? 0.3 : 1 }}
         disabled={disableNext}
       >
@@ -104,7 +104,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
 
   return (
-    <div className="bg-[var(--color-bg-card)] h-[100px] rounded-[var(--radius-md)] overflow-hidden w-full relative" data-scrollable-x="">
+    <div className="bg-[#d8d0ce] h-[100px] rounded-[12px] overflow-hidden w-full relative" data-scrollable-x="">
       <div
         ref={scrollRef}
         className="overflow-x-auto scrollbar-hide h-full"
@@ -123,7 +123,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
           {sessions.map((session, i) => (
             <div
               key={`s-${i}`}
-              className="absolute bg-[var(--color-bar-fill)] rounded-[var(--radius-none)]"
+              className="absolute bg-[#545b7f] rounded-[1px]"
               style={{
                 left: `${(hoursOfDay(session.startTime) / 24) * 100}%`,
                 top: "22px",
@@ -137,7 +137,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
           {currentSessionStart !== null && (
             <>
               <div
-                className="absolute border border-dashed border-[var(--color-bar-fill)] rounded-[var(--radius-none)] shadow-[0px_0px_14.9px_1px_rgba(194,201,220,0.67)]"
+                className="absolute border border-dashed border-[#545b7f] rounded-[1px] shadow-[0px_0px_14.9px_1px_rgba(194,201,220,0.67)]"
                 style={{
                   left: `${(inProgressStartHour / 24) * 100}%`,
                   top: "22px",
@@ -147,7 +147,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
               />
               {currentSessionElapsed > 0 && (
                 <div
-                  className="absolute bg-[var(--color-bar-fill)] rounded-[var(--radius-none)]"
+                  className="absolute bg-[#545b7f] rounded-[1px]"
                   style={{
                     left: `${(inProgressStartHour / 24) * 100}%`,
                     top: "22px",
@@ -168,8 +168,8 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
               transform: "translateX(-50%)",
             }}
           >
-            <div className="w-[8px] h-[8px] rounded-full bg-[var(--color-focus-accent)]" />
-            <div className="w-[2px] h-[55px] bg-[var(--color-focus-accent)]" />
+            <div className="w-[8px] h-[8px] rounded-full bg-[#c65c5c]" />
+            <div className="w-[2px] h-[55px] bg-[#c65c5c]" />
           </div>
 
           {/* Hour labels — centered under each hour marker line */}
@@ -179,7 +179,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
             return (
               <div
                 key={`hl-${h}`}
-                className="absolute text-[var(--color-text-secondary)] text-[var(--text-caption)] tracking-[var(--tracking-tight)] leading-none whitespace-nowrap"
+                className="absolute text-[#8f92a9] text-[10px] tracking-[-0.5px] leading-none whitespace-nowrap"
                 style={{
                   left: `${(h / 24) * 100}%`,
                   top: "82px",
@@ -194,11 +194,11 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
       </div>
       {/* Edge fade overlays — z-10 to sit above playhead and all content */}
       <div
-        className="absolute inset-y-0 left-0 w-[36px] z-10 pointer-events-none rounded-l-[var(--radius-md)]"
+        className="absolute inset-y-0 left-0 w-[36px] z-10 pointer-events-none rounded-l-[12px]"
         style={{ background: "linear-gradient(to right, #d8d0ce, rgba(216,208,206,0))" }}
       />
       <div
-        className="absolute inset-y-0 right-0 w-[36px] z-10 pointer-events-none rounded-r-[var(--radius-md)]"
+        className="absolute inset-y-0 right-0 w-[36px] z-10 pointer-events-none rounded-r-[12px]"
         style={{ background: "linear-gradient(to left, #d8d0ce, rgba(216,208,206,0))" }}
       />
     </div>
@@ -233,7 +233,7 @@ function buildYearGrid(byDate: Record<string, { focusSeconds: number }>): number
   return grid;
 }
 
-const HEAT_COLORS = ["var(--color-heatmap-0)", "var(--color-heatmap-1)", "var(--color-heatmap-2)", "var(--color-heatmap-3)", "var(--color-heatmap-4)"];
+const HEAT_COLORS = ["#cec1bf", "#b8b0c4", "#8f92a9", "#6b6f94", "#545b7f"];
 
 function heatColor(minutes: number): string {
   if (minutes === 0) return HEAT_COLORS[0];
@@ -252,7 +252,7 @@ function YearHeatmap({ byDate }: { byDate: Record<string, { focusSeconds: number
           {Array.from({ length: 52 }).map((_, c) => (
             <div
               key={c}
-              className="size-[5px] rounded-[var(--radius-none)]"
+              className="size-[5px] rounded-[1px]"
               style={{ backgroundColor: heatColor(grid[r][c]) }}
             />
           ))}
@@ -341,7 +341,7 @@ function WeeklySection({
   );
 
   return (
-    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)] flex flex-col gap-[var(--space-md)]" {...weekSwipe}>
+    <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[12px]" {...weekSwipe}>
       {/* Header row: Daily Average + week nav */}
       <div className="flex items-end justify-between">
         <StatBox title="Daily Average" value={dailyAverageMinutes} format="time" />
@@ -380,7 +380,7 @@ function WeeklySection({
                   >
                     {showTooltip && (actualMin > 0 || ((isToday || isFuture) && targetMin > 0)) && (
                       <div
-                        className="absolute left-1/2 -translate-x-1/2 z-20 bg-[var(--color-bg-tooltip)] text-white text-[var(--text-caption)] tracking-[-0.3px] rounded-[var(--radius-sm)] px-[6px] py-[3px] whitespace-nowrap pointer-events-none"
+                        className="absolute left-1/2 -translate-x-1/2 z-20 bg-[#a98461] text-white text-[10px] tracking-[-0.3px] rounded-[6px] px-[6px] py-[3px] whitespace-nowrap pointer-events-none"
                         style={{ bottom: `${Math.max(actualPct, targetPct) + 3}%` }}
                       >
                         {actualMin > 0 && <span>{Math.floor(actualMin / 60)}h{actualMin % 60 > 0 ? ` ${actualMin % 60}m` : ""}</span>}
@@ -390,13 +390,13 @@ function WeeklySection({
                     )}
                     {!isFuture && (
                       <div
-                        className="absolute inset-x-0 bottom-0 bg-[var(--color-bar-fill)] rounded-[var(--radius-none)]"
+                        className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[1px]"
                         style={{ height: `${actualPct}%` }}
                       />
                     )}
                     {(isToday || isFuture) && targetPct > actualPct && (
                       <div
-                        className="absolute inset-x-0 rounded-[var(--radius-xs)]"
+                        className="absolute inset-x-0 rounded-[2px]"
                         style={{
                           bottom: `${actualPct}%`,
                           height: `${targetPct - actualPct}%`,
@@ -419,7 +419,7 @@ function WeeklySection({
             {DAY_LABELS.map((label, i) => (
               <span
                 key={i}
-                className="text-[var(--text-caption)] text-[#8f92a9]/70 tracking-[-0.3px] flex-1 text-center"
+                className="text-[11px] text-[#8f92a9]/70 tracking-[-0.3px] flex-1 text-center"
               >
                 {label}
               </span>
@@ -430,7 +430,7 @@ function WeeklySection({
           {GRID_HOURS.map((h) => (
             <div
               key={h}
-              className="absolute left-[4px] text-[var(--text-caption)] text-[var(--color-text-secondary)] tracking-[var(--tracking-tight)] leading-none"
+              className="absolute left-[4px] text-[10px] text-[#8f92a9] tracking-[-0.5px] leading-none"
               style={{
                 bottom: `${(h / MAX_HOURS) * 100}%`,
                 transform: "translateY(50%)",
@@ -441,7 +441,7 @@ function WeeklySection({
           ))}
           {avgBottomPct > 5 && (
             <div
-              className="absolute left-[4px] text-[var(--text-caption)] text-[var(--color-text-accent)] tracking-[-0.3px] leading-none"
+              className="absolute left-[4px] text-[10px] text-[#a98461] tracking-[-0.3px] leading-none"
               style={{
                 bottom: `${avgBottomPct}%`,
                 transform: "translateY(50%)",
@@ -489,7 +489,7 @@ export function StatsPanelDragZone({
   const totalSquares = stats.todayPomos + remainingPomos;
 
   return (
-    <div className="px-[18px] pb-[var(--space-md)] flex flex-col gap-[var(--space-md)]">
+    <div className="px-[18px] pb-[12px] flex flex-col gap-[12px]">
       <MiniSessionTimeline
         sessions={stats.todaySessions}
         focusDurationSeconds={focusDurationMinutes * 60}
@@ -497,9 +497,9 @@ export function StatsPanelDragZone({
         currentSessionElapsed={currentSessionElapsed}
         now={simNow ?? Date.now()}
       />
-      <div className="grid grid-cols-2 gap-[var(--space-md)]">
-        <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)] flex flex-col gap-[var(--space-sm)] items-start">
-          <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-title)]">
+      <div className="grid grid-cols-2 gap-[12px]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[8px] items-start">
+          <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">
             Today&apos;s Pomos
           </p>
           <div className="flex flex-wrap gap-[5px] items-center min-h-[37px]">
@@ -508,13 +508,13 @@ export function StatsPanelDragZone({
                 {Array.from({ length: stats.todayPomos }).map((_, i) => (
                   <div
                     key={`s-${i}`}
-                    className="size-[18px] rounded-[var(--radius-xs)] bg-[var(--color-bar-fill)]"
+                    className="size-[18px] rounded-[2px] bg-[#545b7f]"
                   />
                 ))}
                 {Array.from({ length: remainingPomos }).map((_, i) => (
                   <div
                     key={`d-${i}`}
-                    className="size-[18px] rounded-[var(--radius-xs)]"
+                    className="size-[18px] rounded-[2px]"
                     style={{
                       border: "1.5px dashed #a98461",
                       background: "transparent",
@@ -523,13 +523,13 @@ export function StatsPanelDragZone({
                 ))}
               </>
             ) : (
-              <p className="text-[var(--color-text-primary)] text-[30px] tracking-[var(--tracking-display)] leading-none">
+              <p className="text-[#545b7f] text-[30px] tracking-[-1.5px] leading-none">
                 None
               </p>
             )}
           </div>
         </div>
-        <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px]">
           <StatBox
             title="Today's Focus"
             value={stats.todayFocusMinutes}
@@ -605,9 +605,9 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
   );
 
   return (
-    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)] flex flex-col gap-[var(--space-sm)]" {...daySwipe}>
+    <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[8px]" {...daySwipe}>
       <div className="flex items-center justify-between">
-        <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-title)]">
+        <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">
           Focus Log
         </p>
         <NavHeader
@@ -650,17 +650,17 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
                   )}
                 </div>
                 {/* Content */}
-                <div className="flex items-center justify-between flex-1 min-w-0 pb-[var(--space-lg)] pl-[var(--space-sm)]">
-                  <span className="text-[var(--color-text-primary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)]">
+                <div className="flex items-center justify-between flex-1 min-w-0 pb-[14px] pl-[8px]">
+                  <span className="text-[#545b7f] text-[13px] tracking-[-0.5px]">
                     {formatTime12(s.startTime)} – {formatTime12(endTime)}
                   </span>
-                  <span className="text-[var(--color-text-secondary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)]">
+                  <span className="text-[#8f92a9] text-[13px] tracking-[-0.5px]">
                     {formatDuration(s.durationSeconds)}
                   </span>
                 </div>
               </div>
               {isSelected && !isEditing && isToday && (
-                <div className="flex gap-[var(--space-sm)] pl-[32px] pb-[var(--space-md)]">
+                <div className="flex gap-[8px] pl-[32px] pb-[12px]">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -668,7 +668,7 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
                       setEditingIdx(i);
                       setEditMinutes(Math.round(s.durationSeconds / 60));
                     }}
-                    className="pressable-sm text-[var(--color-text-primary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] bg-[#cec1bf]/50 rounded-[var(--radius-sm)] px-[10px] py-[5px]"
+                    className="pressable-sm text-[#545b7f] text-[12px] tracking-[-0.5px] bg-[#cec1bf]/50 rounded-[8px] px-[10px] py-[5px]"
                   >
                     Edit
                   </button>
@@ -679,7 +679,7 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
                       onDelete?.(s);
                       setSelectedIdx(null);
                     }}
-                    className="pressable-sm text-[var(--color-text-danger)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] bg-[#c65c5c]/10 rounded-[var(--radius-sm)] px-[10px] py-[5px]"
+                    className="pressable-sm text-[#c65c5c] text-[12px] tracking-[-0.5px] bg-[#c65c5c]/10 rounded-[8px] px-[10px] py-[5px]"
                   >
                     Delete
                   </button>
@@ -687,23 +687,23 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
               )}
               {isEditing && (
                 <div
-                  className="flex items-center gap-[var(--space-sm)] pl-[32px] pb-[var(--space-md)]"
+                  className="flex items-center gap-[8px] pl-[32px] pb-[12px]"
                   onPointerDown={(e) => e.stopPropagation()}
                 >
                   <button
                     type="button"
                     onClick={() => setEditMinutes(Math.max(1, editMinutes - 5))}
-                    className="pressable-sm size-[24px] rounded-full bg-[#cec1bf]/60 text-[var(--color-text-primary)] text-[var(--text-body)] flex items-center justify-center"
+                    className="pressable-sm size-[24px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[14px] flex items-center justify-center"
                   >
                     −
                   </button>
-                  <span className="text-[var(--color-text-primary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] min-w-[36px] text-center tabular-nums">
+                  <span className="text-[#545b7f] text-[13px] tracking-[-0.5px] min-w-[36px] text-center tabular-nums">
                     {editMinutes}m
                   </span>
                   <button
                     type="button"
                     onClick={() => setEditMinutes(Math.min(480, editMinutes + 5))}
-                    className="pressable-sm size-[24px] rounded-full bg-[#cec1bf]/60 text-[var(--color-text-primary)] text-[var(--text-body)] flex items-center justify-center"
+                    className="pressable-sm size-[24px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[14px] flex items-center justify-center"
                   >
                     +
                   </button>
@@ -714,7 +714,7 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
                       setEditingIdx(null);
                       setSelectedIdx(null);
                     }}
-                    className="pressable-sm text-[var(--color-text-inverse)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] bg-[var(--color-bar-fill)] rounded-[var(--radius-sm)] px-[10px] py-[5px] ml-auto"
+                    className="pressable-sm text-[#e6e1e0] text-[12px] tracking-[-0.5px] bg-[#545b7f] rounded-[8px] px-[10px] py-[5px] ml-auto"
                   >
                     Save
                   </button>
@@ -724,7 +724,7 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
           );
         })}
         {sorted.length === 0 && (
-          <p className="text-[var(--color-text-secondary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] py-[var(--space-sm)]">
+          <p className="text-[#8f92a9] text-[13px] tracking-[-0.5px] py-[8px]">
             No sessions
           </p>
         )}
@@ -765,13 +765,13 @@ export function StatsPanelScrollable({
   );
 
   return (
-    <div className="px-[18px] pb-[32px] flex flex-col gap-[var(--space-md)]">
+    <div className="px-[18px] pb-[32px] flex flex-col gap-[12px]">
       {/* ── Lifetime ── */}
-      <div className="grid grid-cols-2 gap-[var(--space-md)]">
-        <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)]">
+      <div className="grid grid-cols-2 gap-[12px]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px]">
           <StatBox title="Total Pomos" value={stats.totalPomos} />
         </div>
-        <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)]">
+        <div className="bg-[#d8d0ce] rounded-[12px] p-[14px]">
           <StatBox
             title="Total Focus Duration"
             value={stats.totalFocusMinutes}
@@ -787,8 +787,8 @@ export function StatsPanelScrollable({
         byDate={stats.byDate}
         settings={settings}
       />
-      <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-md)] p-[var(--space-lg)] flex flex-col gap-[var(--space-sm)]">
-        <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-title)]">
+      <div className="bg-[#d8d0ce] rounded-[12px] p-[14px] flex flex-col gap-[8px]">
+        <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">
           Year Overview
         </p>
         <YearHeatmap byDate={stats.byDate} />
