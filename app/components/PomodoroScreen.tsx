@@ -542,7 +542,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
               left: 18,
               width: 14,
               height: 14,
-              background: "radial-gradient(circle at 100% 100%, transparent 14px, red 14px)",
+              background: "radial-gradient(circle at 100% 100%, transparent 14px, #e6e1e0 14px)",
             }}
           />
           <div
@@ -552,7 +552,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
               right: 18,
               width: 14,
               height: 14,
-              background: "radial-gradient(circle at 0% 100%, transparent 14px, red 14px)",
+              background: "radial-gradient(circle at 0% 100%, transparent 14px, #e6e1e0 14px)",
             }}
           />
         </div>
