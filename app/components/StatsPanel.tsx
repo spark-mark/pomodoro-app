@@ -353,8 +353,24 @@ function WeeklySection({
         />
       </div>
 
-      {/* Bar chart with Y-axis on the right */}
+      {/* Bar chart — Y-axis left, avg label right */}
       <div className="flex">
+        {/* Y-axis labels (left) */}
+        <div className="relative h-[120px] w-[24px] shrink-0">
+          {GRID_HOURS.map((h) => (
+            <div
+              key={h}
+              className="absolute right-[4px] text-[10px] text-muted tracking-[-0.5px] leading-none"
+              style={{
+                bottom: `${(h / MAX_HOURS) * 100}%`,
+                transform: "translateY(50%)",
+              }}
+            >
+              {h}h
+            </div>
+          ))}
+        </div>
+        {/* Chart area */}
         <div className="flex-1 min-w-0">
           <div className="relative h-[120px] w-full">
             {GRID_HOURS.map((h) => (
@@ -426,20 +442,9 @@ function WeeklySection({
             ))}
           </div>
         </div>
+        {/* Avg label (right) */}
         <div className="relative h-[120px] w-[24px] shrink-0">
-          {GRID_HOURS.map((h) => (
-            <div
-              key={h}
-              className="absolute left-[4px] text-[10px] text-muted tracking-[-0.5px] leading-none"
-              style={{
-                bottom: `${(h / MAX_HOURS) * 100}%`,
-                transform: "translateY(50%)",
-              }}
-            >
-              {h}
-            </div>
-          ))}
-          {avgBottomPct > 5 && (
+          {avgBottomPct > 0 && (
             <div
               className="absolute left-[4px] text-[10px] text-accent tracking-[-0.3px] leading-none"
               style={{
