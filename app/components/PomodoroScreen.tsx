@@ -567,6 +567,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             touchAction: expanded ? "pan-y" : "none",
           }}
         >
+          <div className="shrink-0 h-[14px]" />
           {showSettings ? (
             <SettingsPanel
               settings={settings}
