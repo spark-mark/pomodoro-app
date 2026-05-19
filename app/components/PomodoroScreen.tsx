@@ -539,7 +539,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             className="absolute"
             style={{
               bottom: -14,
-              left: 14,
+              left: 8,
               width: 14,
               height: 14,
               background: "radial-gradient(circle at 100% 100%, transparent 14px, red 14px)",
@@ -549,7 +549,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             className="absolute"
             style={{
               bottom: -14,
-              right: 14,
+              right: 8,
               width: 14,
               height: 14,
               background: "radial-gradient(circle at 0% 100%, transparent 14px, red 14px)",
