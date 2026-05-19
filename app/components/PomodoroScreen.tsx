@@ -534,27 +534,25 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             borderTopRightRadius: 24,
           }}
         >
-          {/* Concave corners — form rounded gateway opening for content */}
+          {/* Concave corners — radial gradient cutout for rounded content opening */}
           <div
             className="absolute"
             style={{
               bottom: -14,
-              left: 0,
+              left: 14,
               width: 14,
               height: 14,
-              background: "red",
-              borderBottomRightRadius: 14,
+              background: "radial-gradient(circle at 100% 100%, transparent 14px, red 14px)",
             }}
           />
           <div
             className="absolute"
             style={{
               bottom: -14,
-              right: 0,
+              right: 14,
               width: 14,
               height: 14,
-              background: "red",
-              borderBottomLeftRadius: 14,
+              background: "radial-gradient(circle at 0% 100%, transparent 14px, red 14px)",
             }}
           />
         </div>
