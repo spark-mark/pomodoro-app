@@ -511,7 +511,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           </div>
         )}
 
-        {/* Fixed top edge — content scrolls behind this to preserve rounded gap */}
+        {/* Fixed top edge — content scrolls behind this to preserve rounded gap (only when expanded) */}
         <div
           className="absolute inset-x-0 z-20 pointer-events-none"
           style={{
@@ -520,6 +520,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             background: "#e6e1e0",
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
+            opacity: expanded ? 1 : 0,
           }}
         >
           {/* Concave corners — radial gradient cutout for rounded content opening */}
