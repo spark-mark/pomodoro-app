@@ -516,13 +516,22 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           className="absolute inset-x-0 z-20 pointer-events-none"
           style={{
             top: -1,
-            height: 15,
+            height: 19,
             background: "#e6e1e0",
             borderTopLeftRadius: 24,
             borderTopRightRadius: 24,
             opacity: expanded ? 1 : 0,
           }}
         >
+          {/* Side wings — extend overlay down the left/right edges */}
+          <div
+            className="absolute"
+            style={{ bottom: -14, left: 0, width: 18, height: 14, background: "#e6e1e0" }}
+          />
+          <div
+            className="absolute"
+            style={{ bottom: -14, right: 0, width: 18, height: 14, background: "#e6e1e0" }}
+          />
           {/* Concave corners — radial gradient cutout for rounded content opening */}
           <div
             className="absolute"
@@ -556,7 +565,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             touchAction: expanded ? "pan-y" : "none",
           }}
         >
-          <div className="shrink-0 h-[14px]" />
+          <div className="shrink-0 h-[18px]" />
           {showSettings ? (
             <SettingsPanel
               settings={settings}
