@@ -17,23 +17,23 @@ interface SettingRowProps {
 
 function SettingRow({ label, value, unit, min, max, step, onChange }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between py-[14px]">
-      <span className="text-[#545b7f] text-[14px] tracking-[-0.5px]">{label}</span>
+    <div className="flex items-center justify-between py-[var(--space-lg)]">
+      <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">{label}</span>
       <div className="flex items-center gap-[10px]">
         <button
           type="button"
           onClick={() => { tapHaptic(); onChange(Math.max(min, value - step)); }}
-          className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
+          className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[var(--color-text-primary)] text-[16px] flex items-center justify-center"
         >
           −
         </button>
-        <span className="text-[#545b7f] text-[15px] tracking-[-0.5px] min-w-[48px] text-center tabular-nums">
+        <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)] min-w-[48px] text-center tabular-nums">
           {value} {unit}
         </span>
         <button
           type="button"
           onClick={() => { tapHaptic(); onChange(Math.min(max, value + step)); }}
-          className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
+          className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[var(--color-text-primary)] text-[16px] flex items-center justify-center"
         >
           +
         </button>
@@ -68,11 +68,11 @@ export default function SettingsPanel({ settings, onChange, userEmail, syncStatu
       className="px-[18px] pb-[32px] flex flex-col"
       onPointerDown={(e) => e.stopPropagation()}
     >
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.84px] mb-[4px]">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-title)] mb-[4px]">
         Settings
       </p>
 
-      <div className="divide-y divide-[#c2c9dc]/30">
+      <div className="divide-y divide-[var(--color-border-divider)]/30">
         <SettingRow
           label="Daily study goal"
           value={settings.dailyGoalHours}
@@ -118,23 +118,23 @@ export default function SettingsPanel({ settings, onChange, userEmail, syncStatu
           step={1}
           onChange={(v) => update("longBreakInterval", v)}
         />
-        <div className="flex items-center justify-between py-[14px]">
-          <span className="text-[#545b7f] text-[14px] tracking-[-0.5px]">End of day</span>
+        <div className="flex items-center justify-between py-[var(--space-lg)]">
+          <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">End of day</span>
           <div className="flex items-center gap-[10px]">
             <button
               type="button"
               onClick={() => { tapHaptic(); update("endOfDayHour", Math.max(18, settings.endOfDayHour - 0.5)); }}
-              className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
+              className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[var(--color-text-primary)] text-[16px] flex items-center justify-center"
             >
               −
             </button>
-            <span className="text-[#545b7f] text-[15px] tracking-[-0.5px] min-w-[72px] text-center tabular-nums">
+            <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)] min-w-[72px] text-center tabular-nums">
               {formatHour(settings.endOfDayHour)}
             </span>
             <button
               type="button"
               onClick={() => { tapHaptic(); update("endOfDayHour", Math.min(24, settings.endOfDayHour + 0.5)); }}
-              className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[#545b7f] text-[16px] flex items-center justify-center"
+              className="pressable-sm size-[28px] rounded-full bg-[#cec1bf]/60 text-[var(--color-text-primary)] text-[16px] flex items-center justify-center"
             >
               +
             </button>

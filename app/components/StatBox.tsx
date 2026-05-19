@@ -8,19 +8,19 @@ export default function StatBox(props: StatBoxProps) {
   const { title, value, format = "number" } = props;
 
   return (
-    <div className="flex flex-col gap-[8px] items-start">
-      <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">{title}</p>
+    <div className="flex flex-col gap-[var(--space-sm)] items-start">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-title)]">{title}</p>
       {format === "time" ? (
-        <div className="flex gap-[3px] items-baseline text-[#545b7f] whitespace-nowrap leading-none">
-          <span className="text-[34px] tracking-[-1.5px]">
+        <div className="flex gap-[3px] items-baseline text-[var(--color-text-primary)] whitespace-nowrap leading-none">
+          <span className="text-[var(--text-display)] tracking-[var(--tracking-display)]">
             {Math.floor(value / 60)}
           </span>
-          <span className="text-[14px] tracking-[-0.65px]">h</span>
-          <span className="text-[34px] tracking-[-1.5px]">{value % 60}</span>
-          <span className="text-[14px] tracking-[-0.65px]">m</span>
+          <span className="text-[var(--text-body)] tracking-[-0.65px]">h</span>
+          <span className="text-[var(--text-display)] tracking-[var(--tracking-display)]">{value % 60}</span>
+          <span className="text-[var(--text-body)] tracking-[-0.65px]">m</span>
         </div>
       ) : (
-        <p className="text-[#545b7f] text-[34px] tracking-[-1.5px] leading-none">
+        <p className="text-[var(--color-text-primary)] text-[var(--text-display)] tracking-[var(--tracking-display)] leading-none">
           {value}
         </p>
       )}

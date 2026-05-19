@@ -30,9 +30,9 @@ function formatDuration(seconds: number): string {
 
 function StatCard({ title, value, large }: { title: string; value: string; large?: boolean }) {
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">{title}</p>
-      <p className={`text-[#545b7f] tracking-[-1px] leading-none ${large ? "text-[48px]" : "text-[32px]"}`}>
+    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">{title}</p>
+      <p className={`text-[var(--color-text-primary)] tracking-[-1px] leading-none ${large ? "text-[48px]" : "text-[32px]"}`}>
         {value}
       </p>
     </div>
@@ -46,24 +46,24 @@ function Timer() {
   const s = remaining % 60;
 
   return (
-    <div className="bg-[#d8d0ce] rounded-[24px] p-[40px] flex flex-col items-center justify-center gap-[16px]">
+    <div className="bg-[var(--color-bg-card)] rounded-[var(--radius-xl)] p-[40px] flex flex-col items-center justify-center gap-[16px]">
       <div className="flex items-center gap-[8px]">
-        <span className="text-[#545b7f] text-[18px] tracking-[-0.5px]">
+        <span className="text-[var(--color-text-primary)] text-[var(--text-headline)] tracking-[var(--tracking-tight)]">
           {mode === "focus" ? "Focusing" : "Break"}
         </span>
-        <span className="text-[#8f92a9] text-[18px]">→</span>
-        <span className="text-[#8f92a9]/40 text-[18px] tracking-[-0.5px]">
+        <span className="text-[var(--color-text-secondary)] text-[var(--text-headline)]">→</span>
+        <span className="text-[var(--color-text-secondary)]/40 text-[var(--text-headline)] tracking-[var(--tracking-tight)]">
           {mode === "focus" ? "Short Break" : "Focus"}
         </span>
       </div>
-      <p className="text-[#545b7f] text-[96px] tracking-[-3px] leading-none">
+      <p className="text-[var(--color-text-primary)] text-[96px] tracking-[-3px] leading-none">
         {m}:{s.toString().padStart(2, "0")}
       </p>
       <div className="flex gap-[12px] mt-[8px]">
-        <button className="bg-[#545b7f] text-[#e6e1e0] px-[32px] py-[12px] rounded-[16px] text-[16px] tracking-[-0.5px]">
+        <button className="bg-[var(--color-bar-fill)] text-[var(--color-text-inverse)] px-[32px] py-[12px] rounded-[16px] text-[16px] tracking-[var(--tracking-tight)]">
           Start
         </button>
-        <button className="bg-[#e6e1e0] text-[#545b7f] px-[32px] py-[12px] rounded-full text-[16px] tracking-[-0.5px] border border-[#545b7f]/20">
+        <button className="bg-[var(--color-bg-page)] text-[var(--color-text-primary)] px-[32px] py-[12px] rounded-full text-[16px] tracking-[var(--tracking-tight)] border border-[#545b7f]/20">
           Skip
         </button>
       </div>
@@ -75,11 +75,11 @@ function TodaysPomos() {
   const completed = 2;
   const remaining = 5;
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">Today&apos;s Pomos</p>
+    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">Today&apos;s Pomos</p>
       <div className="flex flex-wrap gap-[5px]">
         {Array.from({ length: completed }).map((_, i) => (
-          <div key={`c-${i}`} className="size-[18px] rounded-[4px] bg-[#545b7f]" />
+          <div key={`c-${i}`} className="size-[18px] rounded-[4px] bg-[var(--color-bar-fill)]" />
         ))}
         {Array.from({ length: remaining }).map((_, i) => (
           <div
@@ -96,16 +96,16 @@ function TodaysPomos() {
 function WeeklyChart() {
   const maxH = 8;
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[20px] flex flex-col gap-[12px]">
+    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-[20px] flex flex-col gap-[12px]">
       <div className="flex items-end justify-between">
         <div>
-          <p className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">Daily Average</p>
-          <p className="text-[#545b7f] text-[28px] tracking-[-1px] leading-none mt-[4px]">1h 8m</p>
+          <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">Daily Average</p>
+          <p className="text-[var(--color-text-primary)] text-[28px] tracking-[-1px] leading-none mt-[4px]">1h 8m</p>
         </div>
         <div className="flex items-center gap-[4px]">
-          <span className="text-[#8f92a9] text-[14px]">‹</span>
-          <span className="text-[#545b7f] text-[13px] tracking-[-0.5px]">This week</span>
-          <span className="text-[#8f92a9]/30 text-[14px]">›</span>
+          <span className="text-[var(--color-text-secondary)] text-[var(--text-body)]">‹</span>
+          <span className="text-[var(--color-text-primary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)]">This week</span>
+          <span className="text-[var(--color-text-secondary)]/30 text-[var(--text-body)]">›</span>
         </div>
       </div>
       <div className="flex items-end gap-[8px] h-[120px]">
@@ -120,7 +120,7 @@ function WeeklyChart() {
               <div className="w-full relative h-[100px]">
                 {!isFuture && pct > 0 && (
                   <div
-                    className="absolute inset-x-0 bottom-0 bg-[#545b7f] rounded-[3px]"
+                    className="absolute inset-x-0 bottom-0 bg-[var(--color-bar-fill)] rounded-[3px]"
                     style={{ height: `${pct}%` }}
                   />
                 )}
@@ -135,7 +135,7 @@ function WeeklyChart() {
                   />
                 )}
               </div>
-              <span className="text-[#8f92a9] text-[11px] tracking-[-0.5px]">{label}</span>
+              <span className="text-[var(--color-text-secondary)] text-[var(--text-caption)] tracking-[var(--tracking-tight)]">{label}</span>
             </div>
           );
         })}
@@ -146,8 +146,8 @@ function WeeklyChart() {
 
 function FocusLog() {
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">Focus Log</p>
+    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">Focus Log</p>
       <div className="flex flex-col">
         {MOCK_SESSIONS.map((s, i) => {
           const endTime = s.startTime + s.durationSeconds * 1000;
@@ -160,14 +160,14 @@ function FocusLog() {
                   style={{ backgroundColor: isCompleted ? "#545b7f" : "#a98461" }}
                 />
                 {i < MOCK_SESSIONS.length - 1 && (
-                  <div className="w-[1.5px] bg-[#c2c9dc]/60 absolute top-[10px] bottom-[-6px]" />
+                  <div className="w-[1.5px] bg-[var(--color-border-divider)]/60 absolute top-[10px] bottom-[-6px]" />
                 )}
               </div>
               <div className="flex items-center justify-between flex-1 min-w-0 pb-[14px] pl-[8px]">
-                <span className="text-[#545b7f] text-[13px] tracking-[-0.5px]">
+                <span className="text-[var(--color-text-primary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)]">
                   {formatTime12(s.startTime)} – {formatTime12(endTime)}
                 </span>
-                <span className="text-[#8f92a9] text-[13px] tracking-[-0.5px]">
+                <span className="text-[var(--color-text-secondary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)]">
                   {formatDuration(s.durationSeconds)}
                 </span>
               </div>
@@ -181,8 +181,8 @@ function FocusLog() {
 
 function YearHeatmap() {
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">Year Overview</p>
+    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-[20px] flex flex-col gap-[8px]">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">Year Overview</p>
       <div className="flex flex-col gap-[3px]">
         {Array.from({ length: 7 }).map((_, r) => (
           <div key={r} className="flex gap-[3px]">
@@ -201,8 +201,8 @@ function YearHeatmap() {
 
 function SettingsPanel() {
   return (
-    <div className="bg-[#d8d0ce] rounded-[18px] p-[20px] flex flex-col gap-[16px]">
-      <p className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">Settings</p>
+    <div className="bg-[var(--color-bg-card)] rounded-[18px] p-[20px] flex flex-col gap-[16px]">
+      <p className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">Settings</p>
       {[
         { label: "Daily study goal", value: "3 hrs" },
         { label: "Focus duration", value: "25 min" },
@@ -210,18 +210,18 @@ function SettingsPanel() {
         { label: "End of day", value: "11:00 PM" },
       ].map((s) => (
         <div key={s.label} className="flex items-center justify-between">
-          <span className="text-[#545b7f] text-[14px] tracking-[-0.5px]">{s.label}</span>
+          <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">{s.label}</span>
           <div className="flex items-center gap-[10px]">
-            <div className="size-[28px] rounded-full bg-[#e6e1e0] flex items-center justify-center text-[#545b7f] text-[16px]">−</div>
-            <span className="text-[#545b7f] text-[15px] tracking-[-0.5px] min-w-[56px] text-center">{s.value}</span>
-            <div className="size-[28px] rounded-full bg-[#e6e1e0] flex items-center justify-center text-[#545b7f] text-[16px]">+</div>
+            <div className="size-[28px] rounded-full bg-[var(--color-bg-page)] flex items-center justify-center text-[var(--color-text-primary)] text-[16px]">−</div>
+            <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)] min-w-[56px] text-center">{s.value}</span>
+            <div className="size-[28px] rounded-full bg-[var(--color-bg-page)] flex items-center justify-center text-[var(--color-text-primary)] text-[16px]">+</div>
           </div>
         </div>
       ))}
-      <div className="border-t border-[#c2c9dc]/30 pt-[12px] flex items-center gap-[8px]">
+      <div className="border-t border-[var(--color-border-divider)]/30 pt-[12px] flex items-center gap-[8px]">
         <span className="size-[8px] rounded-full bg-[#5b8d6a] shrink-0" />
-        <span className="text-[#545b7f] text-[14px] tracking-[-0.5px] truncate">sparkmarkphotos@gmail.com</span>
-        <span className="text-[#8f92a9] text-[12px] tracking-[-0.5px] underline ml-auto">Sign out</span>
+        <span className="text-[var(--color-text-primary)] text-[var(--text-body)] tracking-[var(--tracking-tight)] truncate">sparkmarkphotos@gmail.com</span>
+        <span className="text-[var(--color-text-secondary)] text-[var(--text-footnote)] tracking-[var(--tracking-tight)] underline ml-auto">Sign out</span>
       </div>
     </div>
   );
@@ -229,14 +229,14 @@ function SettingsPanel() {
 
 export default function DesktopDashboard() {
   return (
-    <div className="min-h-screen bg-[#e6e1e0] p-[32px]" style={{ fontFamily: "var(--font-barlow, system-ui)" }}>
+    <div className="min-h-screen bg-[var(--color-bg-page)] p-[32px]" style={{ fontFamily: "var(--font-barlow, system-ui)" }}>
       <div className="max-w-[1400px] mx-auto flex flex-col gap-[24px]">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 className="text-[#545b7f] text-[28px] tracking-[-1px]">Pomodoro</h1>
+          <h1 className="text-[var(--color-text-primary)] text-[28px] tracking-[-1px]">Pomodoro</h1>
           <div className="flex items-center gap-[8px]">
             <span className="size-[8px] rounded-full bg-[#5b8d6a]" />
-            <span className="text-[#8f92a9] text-[14px] tracking-[-0.5px]">Synced</span>
+            <span className="text-[var(--color-text-secondary)] text-[var(--text-body)] tracking-[var(--tracking-tight)]">Synced</span>
           </div>
         </div>
 
