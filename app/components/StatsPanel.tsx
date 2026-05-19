@@ -104,17 +104,17 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
     currentSessionStart !== null ? hoursOfDay(currentSessionStart) : 0;
 
   return (
-    <div className="bg-surface h-[100px] rounded-[12px] overflow-hidden w-full relative" data-scrollable-x="">
+    <div className="bg-surface h-[50px] rounded-[12px] overflow-hidden w-full relative" data-scrollable-x="">
       <div
         ref={scrollRef}
         className="overflow-x-auto scrollbar-hide h-full"
       >
         <div className="relative h-full" style={{ width: "480%" }}>
-          {/* Hour markers (25 dotted vertical lines, 0–24) */}
+          {/* Hour markers */}
           {Array.from({ length: 25 }).map((_, h) => (
             <div
               key={`hm-${h}`}
-              className="absolute top-[17px] h-[58px] border-l border-dotted border-[#8f92a9]/50"
+              className="absolute top-[4px] h-[30px] border-l border-dotted border-[#8f92a9]/50"
               style={{ left: `${(h / 24) * 100}%` }}
             />
           ))}
@@ -126,9 +126,9 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
               className="absolute bg-primary rounded-[1px]"
               style={{
                 left: `${(hoursOfDay(session.startTime) / 24) * 100}%`,
-                top: "22px",
+                top: "6px",
                 width: `${(session.durationSeconds / SECONDS_PER_DAY) * 100}%`,
-                height: "47px",
+                height: "26px",
               }}
             />
           ))}
@@ -140,9 +140,9 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
                 className="absolute border border-dashed border-primary rounded-[1px] shadow-[0px_0px_14.9px_1px_rgba(194,201,220,0.67)]"
                 style={{
                   left: `${(inProgressStartHour / 24) * 100}%`,
-                  top: "22px",
+                  top: "6px",
                   width: `${(focusDurationSeconds / SECONDS_PER_DAY) * 100}%`,
-                  height: "47px",
+                  height: "26px",
                 }}
               />
               {currentSessionElapsed > 0 && (
@@ -150,29 +150,29 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
                   className="absolute bg-primary rounded-[1px]"
                   style={{
                     left: `${(inProgressStartHour / 24) * 100}%`,
-                    top: "22px",
+                    top: "6px",
                     width: `${(currentSessionElapsed / SECONDS_PER_DAY) * 100}%`,
-                    height: "47px",
+                    height: "26px",
                   }}
                 />
               )}
             </>
           )}
 
-          {/* Playhead: red circle + vertical line at current simulated time */}
+          {/* Playhead: red circle + vertical line */}
           <div
             className="absolute flex flex-col items-center pointer-events-none"
             style={{
               left: `${(nowHour / 24) * 100}%`,
-              top: "12px",
+              top: "2px",
               transform: "translateX(-50%)",
             }}
           >
-            <div className="w-[8px] h-[8px] rounded-full bg-danger" />
-            <div className="w-[2px] h-[55px] bg-danger" />
+            <div className="w-[6px] h-[6px] rounded-full bg-danger" />
+            <div className="w-[1.5px] h-[28px] bg-danger" />
           </div>
 
-          {/* Hour labels — centered under each hour marker line */}
+          {/* Hour labels — kept same size at bottom */}
           {Array.from({ length: 24 }).map((_, h) => {
             const hr12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
             const suffix = h < 12 ? "am" : "pm";
@@ -182,7 +182,7 @@ function MiniSessionTimeline(props: MiniSessionTimelineProps) {
                 className="absolute text-muted text-[10px] tracking-[-0.5px] leading-none whitespace-nowrap"
                 style={{
                   left: `${(h / 24) * 100}%`,
-                  top: "82px",
+                  top: "37px",
                   transform: "translateX(-50%)",
                 }}
               >
