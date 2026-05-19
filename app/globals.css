@@ -259,6 +259,18 @@ body {
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* Design system colors — generates text-*, bg-*, border-* utilities */
+  --color-primary: #545b7f;
+  --color-muted: #8f92a9;
+  --color-accent: #a98461;
+  --color-danger: #c65c5c;
+  --color-inverse: #e6e1e0;
+  --color-success: #5b8d6a;
+  --color-page: #e6e1e0;
+  --color-surface: #d8d0ce;
+  --color-surface-dim: #cec1bf;
+  --color-divider: #c2c9dc;
 }
 
 @layer base {

@@ -9,9 +9,9 @@ export default function StatBox(props: StatBoxProps) {
 
   return (
     <div className="flex flex-col gap-[8px] items-start">
-      <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">{title}</p>
+      <p className="text-muted text-[15px] tracking-[-0.84px]">{title}</p>
       {format === "time" ? (
-        <div className="flex gap-[3px] items-baseline text-[#545b7f] whitespace-nowrap leading-none">
+        <div className="flex gap-[3px] items-baseline text-primary whitespace-nowrap leading-none">
           <span className="text-[34px] tracking-[-1.5px]">
             {Math.floor(value / 60)}
           </span>
@@ -20,7 +20,7 @@ export default function StatBox(props: StatBoxProps) {
           <span className="text-[15px] tracking-[-0.65px]">m</span>
         </div>
       ) : (
-        <p className="text-[#545b7f] text-[34px] tracking-[-1.5px] leading-none">
+        <p className="text-primary text-[34px] tracking-[-1.5px] leading-none">
           {value}
         </p>
       )}

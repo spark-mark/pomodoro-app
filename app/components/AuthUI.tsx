@@ -66,7 +66,7 @@ export default function AuthUI({ onSignedIn }: AuthUIProps) {
         onChange={(e) => setEmail(e.target.value)}
         required
         autoComplete="email"
-        className="bg-[#cec1bf]/40 text-[#545b7f] placeholder-[#8f92a9] text-[15px] tracking-[-0.5px] rounded-[12px] px-[14px] py-[10px] outline-none focus:bg-[#cec1bf]/60"
+        className="bg-[#cec1bf]/40 text-primary placeholder-[#8f92a9] text-[15px] tracking-[-0.5px] rounded-[12px] px-[14px] py-[10px] outline-none focus:bg-[#cec1bf]/60"
       />
       <input
         type="password"
@@ -76,15 +76,15 @@ export default function AuthUI({ onSignedIn }: AuthUIProps) {
         required
         minLength={8}
         autoComplete={mode === "sign-up" ? "new-password" : "current-password"}
-        className="bg-[#cec1bf]/40 text-[#545b7f] placeholder-[#8f92a9] text-[15px] tracking-[-0.5px] rounded-[12px] px-[14px] py-[10px] outline-none focus:bg-[#cec1bf]/60"
+        className="bg-[#cec1bf]/40 text-primary placeholder-[#8f92a9] text-[15px] tracking-[-0.5px] rounded-[12px] px-[14px] py-[10px] outline-none focus:bg-[#cec1bf]/60"
       />
       {error && (
-        <p className="text-[#c65c5c] text-[13px] tracking-[-0.5px]">{error}</p>
+        <p className="text-danger text-[13px] tracking-[-0.5px]">{error}</p>
       )}
       <button
         type="submit"
         disabled={busy}
-        className="pressable-sm bg-[#545b7f] text-[#e6e1e0] text-[15px] tracking-[-0.5px] rounded-[12px] py-[10px] disabled:opacity-50"
+        className="pressable-sm bg-primary text-inverse text-[15px] tracking-[-0.5px] rounded-[12px] py-[10px] disabled:opacity-50"
       >
         {busy ? "…" : mode === "sign-in" ? "Sign In" : "Sign Up"}
       </button>
@@ -94,7 +94,7 @@ export default function AuthUI({ onSignedIn }: AuthUIProps) {
           setMode(altMode);
           setError(null);
         }}
-        className="pressable-sm text-[#8f92a9] text-[13px] tracking-[-0.5px] underline self-center"
+        className="pressable-sm text-muted text-[13px] tracking-[-0.5px] underline self-center"
       >
         {mode === "sign-in"
           ? "Don't have an account? Sign up"
@@ -132,26 +132,26 @@ export function AccountSection({
           : "#5b8d6a";
     return (
       <div className="flex flex-col gap-[8px]">
-        <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">Account</p>
+        <p className="text-muted text-[15px] tracking-[-0.84px]">Account</p>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-[8px] min-w-0">
             <span
               className="size-[8px] rounded-full shrink-0"
               style={{ backgroundColor: dotColor }}
             />
-            <span className="text-[#545b7f] text-[15px] tracking-[-0.5px] truncate">
+            <span className="text-primary text-[15px] tracking-[-0.5px] truncate">
               {email}
             </span>
           </div>
           <button
             type="button"
             onClick={() => signOut({ redirect: false })}
-            className="pressable-sm text-[#8f92a9] text-[13px] tracking-[-0.5px] underline"
+            className="pressable-sm text-muted text-[13px] tracking-[-0.5px] underline"
           >
             Sign out
           </button>
         </div>
-        <p className="text-[#8f92a9] text-[11px] tracking-[-0.5px]">
+        <p className="text-muted text-[11px] tracking-[-0.5px]">
           {statusLabel}
         </p>
       </div>
@@ -160,7 +160,7 @@ export function AccountSection({
 
   return (
     <div className="flex flex-col gap-[8px]">
-      <p className="text-[#8f92a9] text-[15px] tracking-[-0.84px]">Account</p>
+      <p className="text-muted text-[15px] tracking-[-0.84px]">Account</p>
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -169,12 +169,12 @@ export function AccountSection({
       >
         <span className="flex items-center gap-[10px]">
           <CloudIcon />
-          <span className="text-[#545b7f] text-[15px] tracking-[-0.5px]">
+          <span className="text-primary text-[15px] tracking-[-0.5px]">
             Sign in to sync
           </span>
         </span>
         <span
-          className="text-[#8f92a9] text-[16px] leading-none transition-transform"
+          className="text-muted text-[16px] leading-none transition-transform"
           style={{ transform: expanded ? "rotate(90deg)" : "rotate(0deg)" }}
         >
           ›
