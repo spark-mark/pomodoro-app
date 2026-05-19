@@ -567,11 +567,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
             touchAction: expanded ? "pan-y" : "none",
           }}
         >
-          {/* Drag handle bar */}
-          <div className="flex justify-center pt-[7px] pb-[7px] shrink-0 cursor-grab active:cursor-grabbing relative z-30">
-            <div className="w-[36px] h-[4px] rounded-full bg-[#c2c9dc]/50" />
-          </div>
-
           {showSettings ? (
             <SettingsPanel
               settings={settings}
