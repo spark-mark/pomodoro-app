@@ -52,7 +52,6 @@ export interface AdaptiveTarget {
 export function computeAdaptiveTarget(
   weeklyFocusMinutes: number[],
   weeklyGoalMinutes: number,
-  carryoverMinutes: number,
   todayDayIndex: number,
   settings: PomodoroSettings = DEFAULT_SETTINGS,
 ): AdaptiveTarget {
@@ -61,8 +60,7 @@ export function computeAdaptiveTarget(
   const pomoCycleMinutes = focusDurationMinutes + avgBreak;
 
   const completedMinutes = weeklyFocusMinutes.reduce((sum, m) => sum + m, 0);
-  const effectiveGoal = weeklyGoalMinutes + carryoverMinutes;
-  const remainingMinutes = Math.max(0, effectiveGoal - completedMinutes);
+  const remainingMinutes = Math.max(0, weeklyGoalMinutes - completedMinutes);
   const remainingDays = Math.max(1, 7 - todayDayIndex);
   const dailyTargetMinutes = remainingMinutes / remainingDays;
   const goalPomos = Math.ceil(dailyTargetMinutes / focusDurationMinutes);

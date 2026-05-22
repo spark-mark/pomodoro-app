@@ -49,7 +49,6 @@ function NavHeader({ label, onPrev, onNext, disableNext }: {
 export interface StatsPanelProps {
   stats: PomodoroStats;
   weeklyGoalMinutes?: number;
-  carryoverMinutes?: number;
   currentSessionStart?: number | null;
   currentSessionElapsed?: number;
   simNow?: number;
@@ -469,7 +468,6 @@ export interface StatsPanelDragZoneProps {
   simNow?: number;
   focusDurationMinutes?: number;
   weeklyGoalMinutes?: number;
-  carryoverMinutes?: number;
   settings?: PomodoroSettings;
 }
 
@@ -480,13 +478,11 @@ export function StatsPanelDragZone({
   simNow,
   focusDurationMinutes = 25,
   weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
-  carryoverMinutes = 0,
   settings = DEFAULT_SETTINGS,
 }: StatsPanelDragZoneProps) {
   const target = computeAdaptiveTarget(
     stats.weeklyFocusMinutes,
     weeklyGoalMinutes,
-    carryoverMinutes,
     new Date().getDay(),
     settings,
   );
@@ -741,7 +737,6 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
 export interface StatsPanelScrollableProps {
   stats: PomodoroStats;
   weeklyGoalMinutes?: number;
-  carryoverMinutes?: number;
   userEmail?: string | null;
   syncStatus?: SyncStatus;
   onSignedIn?: () => void;
@@ -753,7 +748,6 @@ export interface StatsPanelScrollableProps {
 export function StatsPanelScrollable({
   stats,
   weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
-  carryoverMinutes = 0,
   userEmail = null,
   syncStatus = "idle",
   onSignedIn,
@@ -764,7 +758,6 @@ export function StatsPanelScrollable({
   const target = computeAdaptiveTarget(
     stats.weeklyFocusMinutes,
     weeklyGoalMinutes,
-    carryoverMinutes,
     new Date().getDay(),
     settings,
   );
@@ -818,7 +811,6 @@ export default function StatsPanel(props: StatsPanelProps) {
       <StatsPanelScrollable
         stats={props.stats}
         weeklyGoalMinutes={props.weeklyGoalMinutes}
-        carryoverMinutes={props.carryoverMinutes}
         userEmail={props.userEmail}
         syncStatus={props.syncStatus}
         onSignedIn={props.onSignedIn}

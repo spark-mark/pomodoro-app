@@ -27,8 +27,6 @@ export interface PomodoroScreenProps {
   stats?: PomodoroStats;
   /** Weekly focus minutes goal. Defaults to 1800 (30h). */
   weeklyGoalMinutes?: number;
-  /** Carryover from prior week — positive = deficit, negative = surplus. */
-  carryoverMinutes?: number;
   /** When true the stats overlay is expanded. */
   expanded?: boolean;
   /** Fill the viewport instead of using fixed 393×852 dimensions. */
@@ -122,7 +120,6 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     remaining = modeDuration(mode),
     stats = DEFAULT_STATS,
     weeklyGoalMinutes = DEFAULT_WEEKLY_GOAL_MINUTES,
-    carryoverMinutes = 0,
     expanded = false,
     fullscreen = false,
     currentSessionStart = null,
@@ -584,14 +581,12 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
                   simNow={simNow}
                   focusDurationMinutes={settings.focusDurationMinutes}
                   weeklyGoalMinutes={weeklyGoalMinutes}
-                  carryoverMinutes={carryoverMinutes}
                   settings={settings}
                 />
               </div>
               <StatsPanelScrollable
                 stats={stats}
                 weeklyGoalMinutes={weeklyGoalMinutes}
-                carryoverMinutes={carryoverMinutes}
                 userEmail={userEmail}
                 syncStatus={syncStatus}
                 onSignedIn={onSignedIn}

@@ -22,9 +22,6 @@ const SETTINGS_STORAGE_KEY = "pomodoro-settings.v1";
 
 interface PersistedGoals {
   weeklyGoalMinutes: number;
-  /** Positive = deficit (work more), negative = surplus (work less). */
-  carryoverMinutes: number;
-  /** ISO week identifier (e.g., "2026-W20") of the most recent rollover check. */
   lastWeekKey: string;
 }
 
@@ -44,7 +41,6 @@ function isoWeekKey(date: Date): string {
 function loadGoal(): PersistedGoals {
   const fallback: PersistedGoals = {
     weeklyGoalMinutes: DEFAULT_WEEKLY_GOAL_MINUTES,
-    carryoverMinutes: 0,
     lastWeekKey: "",
   };
   if (typeof window === "undefined") return fallback;
@@ -55,7 +51,6 @@ function loadGoal(): PersistedGoals {
     return {
       weeklyGoalMinutes:
         parsed.weeklyGoalMinutes ?? DEFAULT_WEEKLY_GOAL_MINUTES,
-      carryoverMinutes: parsed.carryoverMinutes ?? 0,
       lastWeekKey: parsed.lastWeekKey ?? "",
     };
   } catch {
@@ -72,22 +67,6 @@ function saveGoal(g: PersistedGoals): void {
   }
 }
 
-function previousWeekTotalMinutes(
-  byDate: Record<string, PersistedDayEntry>,
-  now: Date,
-): number {
-  const sunday = new Date(now);
-  sunday.setHours(0, 0, 0, 0);
-  sunday.setDate(now.getDate() - now.getDay() - 7);
-  let total = 0;
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(sunday);
-    d.setDate(sunday.getDate() + i);
-    const entry = byDate[dateKey(d)];
-    if (entry) total += Math.floor(entry.focusSeconds / 60);
-  }
-  return total;
-}
 
 interface PersistedDayEntry {
   pomos: number;
@@ -197,7 +176,6 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   });
   const [goals, setGoals] = useState<PersistedGoals>({
     weeklyGoalMinutes: DEFAULT_WEEKLY_GOAL_MINUTES,
-    carryoverMinutes: 0,
     lastWeekKey: "",
   });
   const [showStats, setShowStats] = useState<boolean>(false);
@@ -216,7 +194,6 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   });
   const goalsRef = useRef<PersistedGoals>({
     weeklyGoalMinutes: DEFAULT_WEEKLY_GOAL_MINUTES,
-    carryoverMinutes: 0,
     lastWeekKey: "",
   });
   const lastSyncedUserRef = useRef<string | null>(null);
@@ -232,15 +209,8 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     if (!loadedGoals.lastWeekKey) {
       nextGoals = { ...loadedGoals, lastWeekKey: currentWeekKey };
     } else if (loadedGoals.lastWeekKey !== currentWeekKey) {
-      const prevTotal = previousWeekTotalMinutes(data.byDate, now);
-      const prevEffectiveGoal =
-        loadedGoals.weeklyGoalMinutes + loadedGoals.carryoverMinutes;
-      const delta = prevEffectiveGoal - prevTotal;
-      const maxCarryover = loadedGoals.weeklyGoalMinutes * 0.25;
-      const clamped = Math.max(-maxCarryover, Math.min(maxCarryover, delta));
       nextGoals = {
         weeklyGoalMinutes: loadedGoals.weeklyGoalMinutes,
-        carryoverMinutes: clamped,
         lastWeekKey: currentWeekKey,
       };
     }
@@ -331,7 +301,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       if (localGoals.lastWeekKey) {
         s.pushGoals({
           weeklyGoalMinutes: localGoals.weeklyGoalMinutes,
-          carryoverMinutes: localGoals.carryoverMinutes,
+          carryoverMinutes: 0,
           lastWeekKey: localGoals.lastWeekKey,
         });
       }
@@ -742,7 +712,6 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       expanded={showStats}
       fullscreen={props.fullscreen}
       weeklyGoalMinutes={goals.weeklyGoalMinutes}
-      carryoverMinutes={goals.carryoverMinutes}
       currentSessionStart={sessionStartRef.current}
       currentSessionElapsed={currentSessionElapsed}
       simNow={simNow}
