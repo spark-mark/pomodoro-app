@@ -308,16 +308,19 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
         startTime: number;
         durationSeconds: number;
         isCompleted: boolean;
+        sessionType?: string;
       }[] = [];
       for (const [dateKey, day] of Object.entries(localPersisted.byDate)) {
         const sessions = day.sessions ?? [];
         for (let i = 0; i < sessions.length; i++) {
           const se = sessions[i];
+          const isFocus = !se.type || se.type === "focus";
           localSessions.push({
             dateKey,
             startTime: se.startTime,
             durationSeconds: se.durationSeconds,
-            isCompleted: se.durationSeconds >= FOCUS_DURATION_SECONDS,
+            isCompleted: isFocus && se.durationSeconds >= FOCUS_DURATION_SECONDS,
+            sessionType: se.type ?? "focus",
           });
         }
       }
@@ -401,6 +404,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
               {
                 startTime: startedAt,
                 durationSeconds: settings.focusDurationMinutes * 60,
+                type: "focus" as const,
               },
             ]
           : (day.sessions ?? []);
@@ -611,6 +615,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
         addSession({
           startTime: startedAt,
           durationSeconds: elapsed,
+          type: "focus",
         });
         sync.pushSession({
           dateKey: todayKey(),
@@ -636,6 +641,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
         addSession({
           startTime: startedAt,
           durationSeconds: elapsed,
+          type: "focus",
         });
         sync.pushSession({
           dateKey: todayKey(),
@@ -668,7 +674,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
             ? updated
             : s,
         );
-        const focusSeconds = sessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+        const focusSeconds = sessions
+          .filter((s) => !s.type || s.type === "focus")
+          .reduce((sum, s) => sum + s.durationSeconds, 0);
         return {
           ...prev,
           byDate: { ...prev.byDate, [key]: { ...day, sessions, focusSeconds } },
@@ -693,7 +701,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
               s.durationSeconds === session.durationSeconds),
         );
         const wasCompleted = session.durationSeconds >= settings.focusDurationMinutes * 60;
-        const focusSeconds = sessions.reduce((sum, s) => sum + s.durationSeconds, 0);
+        const focusSeconds = sessions
+          .filter((s) => !s.type || s.type === "focus")
+          .reduce((sum, s) => sum + s.durationSeconds, 0);
         return {
           ...prev,
           byDate: {

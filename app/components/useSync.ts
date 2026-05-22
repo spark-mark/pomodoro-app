@@ -100,15 +100,21 @@ export function useSync(): UseSyncReturn {
           focusSeconds: 0,
           sessions: [],
         };
+        const sessionType = s.sessionType === "break" || s.sessionType === "longBreak"
+          ? s.sessionType
+          : "focus";
         day.sessions.push({
           startTime: s.startTime,
           durationSeconds: s.durationSeconds,
+          type: sessionType,
         });
-        day.focusSeconds += s.durationSeconds;
-        if (s.isCompleted) day.pomos += 1;
+        if (sessionType === "focus") {
+          day.focusSeconds += s.durationSeconds;
+          if (s.isCompleted) day.pomos += 1;
+          persisted.totalFocusSeconds += s.durationSeconds;
+          if (s.isCompleted) persisted.totalPomos += 1;
+        }
         persisted.byDate[s.dateKey] = day;
-        persisted.totalFocusSeconds += s.durationSeconds;
-        if (s.isCompleted) persisted.totalPomos += 1;
       }
 
       setStatus("synced");
