@@ -13,9 +13,11 @@ interface SettingRowProps {
   max: number;
   step: number;
   onChange: (v: number) => void;
+  formatValue?: (v: number) => string;
 }
 
-function SettingRow({ label, value, unit, min, max, step, onChange }: SettingRowProps) {
+function SettingRow({ label, value, unit, min, max, step, onChange, formatValue }: SettingRowProps) {
+  const display = formatValue ? formatValue(value) : `${value} ${unit}`;
   return (
     <div className="flex items-center justify-between py-[14px]">
       <span className="text-primary text-[15px] tracking-[-0.5px]">{label}</span>
@@ -28,7 +30,7 @@ function SettingRow({ label, value, unit, min, max, step, onChange }: SettingRow
           −
         </button>
         <span className="text-primary text-[15px] tracking-[-0.5px] min-w-[48px] text-center tabular-nums">
-          {value} {unit}
+          {display}
         </span>
         <button
           type="button"
@@ -77,10 +79,15 @@ export default function SettingsPanel({ settings, onChange, userEmail, syncStatu
           label="Daily study goal"
           value={settings.dailyGoalHours}
           unit="hrs"
-          min={1}
+          min={0.5}
           max={12}
-          step={1}
+          step={0.5}
           onChange={(v) => update("dailyGoalHours", v)}
+          formatValue={(v) => {
+            const h = Math.floor(v);
+            const m = Math.round((v - h) * 60);
+            return m > 0 ? (h > 0 ? `${h}h ${m}m` : `${m}m`) : `${h} hrs`;
+          }}
         />
         <SettingRow
           label="Focus duration"

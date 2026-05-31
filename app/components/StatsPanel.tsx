@@ -581,11 +581,12 @@ function dateKeyForOffset(offset: number): string {
 interface FocusLogProps {
   sessions: SessionEntry[];
   byDate: Record<string, { focusSeconds: number; sessions?: SessionEntry[] }>;
+  focusDurationMinutes: number;
   onEdit?: (original: SessionEntry, updated: SessionEntry) => void;
   onDelete?: (session: SessionEntry) => void;
 }
 
-function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLogProps) {
+function FocusLog({ sessions: todaySessions, byDate, focusDurationMinutes, onEdit, onDelete }: FocusLogProps) {
   const [dayOffset, setDayOffset] = useState(0);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -621,7 +622,7 @@ function FocusLog({ sessions: todaySessions, byDate, onEdit, onDelete }: FocusLo
       <div className="flex flex-col">
         {sorted.map((s, i) => {
           const endTime = s.startTime + s.durationSeconds * 1000;
-          const isCompleted = s.durationSeconds >= FOCUS_DURATION_SECONDS;
+          const isCompleted = s.durationSeconds >= focusDurationMinutes * 60;
           const isSelected = selectedIdx === i;
           const isEditing = editingIdx === i;
           return (
@@ -793,7 +794,7 @@ export function StatsPanelScrollable({
       </div>
 
       {/* ── Focus Log ── */}
-      <FocusLog sessions={stats.todaySessions} byDate={stats.byDate} onEdit={onEditSession} onDelete={onDeleteSession} />
+      <FocusLog sessions={stats.todaySessions} byDate={stats.byDate} focusDurationMinutes={settings.focusDurationMinutes} onEdit={onEditSession} onDelete={onDeleteSession} />
 
     </div>
   );

@@ -56,7 +56,8 @@ export function computeAdaptiveTarget(
   settings: PomodoroSettings = DEFAULT_SETTINGS,
 ): AdaptiveTarget {
   const focusDurationMinutes = settings.focusDurationMinutes;
-  const avgBreak = ((settings.longBreakInterval - 1) * settings.breakDurationMinutes + settings.longBreakDurationMinutes) / settings.longBreakInterval;
+  const interval = Math.max(1, settings.longBreakInterval);
+  const avgBreak = ((interval - 1) * settings.breakDurationMinutes + settings.longBreakDurationMinutes) / interval;
   const pomoCycleMinutes = focusDurationMinutes + avgBreak;
 
   const completedMinutes = weeklyFocusMinutes.reduce((sum, m) => sum + m, 0);

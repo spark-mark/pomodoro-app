@@ -183,6 +183,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
 
   const sessionStartRef = useRef<number | null>(null);
   const breakStartRef = useRef<number | null>(null);
+  const completingRef = useRef(false);
   const simNowRef = useRef<number>(Date.now());
   const [simNow, setSimNow] = useState<number>(Date.now());
 
@@ -223,6 +224,16 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
         const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) as Partial<PomodoroSettings> };
         setSettings(loaded);
         setRemaining(modeDuration("focus", loaded));
+        // Sync goals with loaded settings so suggested pomos reflect the saved daily goal
+        const derivedWeekly = loaded.dailyGoalHours * 60 * 7;
+        setGoals((prev) => {
+          if (prev.weeklyGoalMinutes !== derivedWeekly) {
+            const updated = { ...prev, weeklyGoalMinutes: derivedWeekly };
+            saveGoal(updated);
+            return updated;
+          }
+          return prev;
+        });
       }
     } catch { /* ignore */ }
   }, [storageKey]);
@@ -373,7 +384,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
               ...(day.sessions ?? []),
               {
                 startTime: startedAt,
-                durationSeconds: settings.focusDurationMinutes * 60,
+                durationSeconds: settingsRef.current.focusDurationMinutes * 60,
                 type: "focus" as const,
               },
             ]
@@ -391,7 +402,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       sync.pushSession({
         dateKey: key,
         startTime: startedAt,
-        durationSeconds: settings.focusDurationMinutes * 60,
+        durationSeconds: settingsRef.current.focusDurationMinutes * 60,
         isCompleted: true,
       });
     }
@@ -437,6 +448,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
 
   const lastTickRef = useRef<number | null>(null);
   useEffect(() => {
+    completingRef.current = false;
     if (state !== "running") {
       lastTickRef.current = null;
       document.title = "Pomodoro";
@@ -459,6 +471,10 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       setRemaining((prevRemaining) => {
         const next = prevRemaining - elapsed;
         if (next <= 0) {
+          // Guard against double-fire: the interval can tick again before React
+          // re-renders with state="default" and clears the interval.
+          if (completingRef.current) return 0;
+          completingRef.current = true;
           // Schedule completion side effects outside the updater via microtask
           queueMicrotask(() => {
             const curMode = modeRef.current;
@@ -550,7 +566,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     if (mode === "focus" && state === "default") {
       sessionStartRef.current = Date.now();
     } else if (mode === "focus" && state === "paused" && sessionStartRef.current !== null) {
-      const elapsed = modeDuration("focus", settings) - remaining;
+      const elapsed = Math.max(0, modeDuration("focus", settings) - remaining);
       sessionStartRef.current = Date.now() - elapsed * 1000;
     }
     setState("running");
@@ -596,6 +612,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       }
       sessionStartRef.current = null;
     }
+    breakStartRef.current = null;
     setState("default");
     setRemaining(modeDuration(mode, settings));
     import("@/app/plugins/LiveActivityPlugin").then(({ LiveActivity }) => {
@@ -622,6 +639,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
       }
       sessionStartRef.current = null;
     }
+    breakStartRef.current = null;
     setMode("focus");
     setState("default");
     setRemaining(modeDuration("focus", settings));
@@ -650,8 +668,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
         return {
           ...prev,
           byDate: { ...prev.byDate, [key]: { ...day, sessions, focusSeconds } },
-          totalFocusSeconds:
-            prev.totalFocusSeconds - original.durationSeconds + updated.durationSeconds,
+          totalFocusSeconds: (!original.type || original.type === "focus")
+            ? prev.totalFocusSeconds - original.durationSeconds + updated.durationSeconds
+            : prev.totalFocusSeconds,
         };
       });
       sync.editSession(original.startTime, updated.durationSeconds);
@@ -685,7 +704,9 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
               pomos: wasCompleted ? Math.max(0, day.pomos - 1) : day.pomos,
             },
           },
-          totalFocusSeconds: prev.totalFocusSeconds - session.durationSeconds,
+          totalFocusSeconds: (!session.type || session.type === "focus")
+            ? prev.totalFocusSeconds - session.durationSeconds
+            : prev.totalFocusSeconds,
           totalPomos: wasCompleted
             ? Math.max(0, prev.totalPomos - 1)
             : prev.totalPomos,
