@@ -111,16 +111,34 @@ export default function CylindricalTimeline({
     raf.current = requestAnimationFrame(momentum);
   }, []);
 
+  const startPos = useRef({ x: 0, y: 0 });
+  const locked = useRef<"h" | "v" | null>(null);
+  const LOCK_THRESHOLD = 6;
+
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     dragging.current = true;
+    locked.current = null;
     lastX.current = e.clientX;
+    startPos.current = { x: e.clientX, y: e.clientY };
     velocity.current = 0;
     cancelAnimationFrame(raf.current);
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current || !containerRef.current) return;
+
+    if (!locked.current) {
+      const dx = Math.abs(e.clientX - startPos.current.x);
+      const dy = Math.abs(e.clientY - startPos.current.y);
+      if (dx < LOCK_THRESHOLD && dy < LOCK_THRESHOLD) return;
+      locked.current = dx >= dy ? "h" : "v";
+      if (locked.current === "h") {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      }
+    }
+
+    if (locked.current === "v") return;
+
     const dx = e.clientX - lastX.current;
     lastX.current = e.clientX;
     const delta = (dx / containerRef.current.clientWidth) * 180;
@@ -129,10 +147,14 @@ export default function CylindricalTimeline({
     setAngle(angleRef.current);
   }, []);
 
-  const onPointerUp = useCallback(() => {
+  const onPointerUp = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
+    const wasHorizontal = locked.current === "h";
     dragging.current = false;
-    raf.current = requestAnimationFrame(momentum);
+    locked.current = null;
+    if (wasHorizontal) {
+      raf.current = requestAnimationFrame(momentum);
+    }
   }, [momentum]);
 
   useEffect(() => () => cancelAnimationFrame(raf.current), []);
@@ -144,7 +166,7 @@ export default function CylindricalTimeline({
       style={{
         background: "white",
         border: "1px solid #b5bbf5",
-        touchAction: "none",
+        touchAction: "pan-y",
       }}
       data-scrollable-x=""
       onPointerDown={onPointerDown}
