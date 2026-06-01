@@ -7,7 +7,7 @@ const SLICE_COUNT = 72;
 const DEG_PER_SLICE = 360 / SLICE_COUNT;
 const RADIUS = 200;
 const SLICE_WIDTH = Math.ceil((2 * Math.PI * RADIUS) / SLICE_COUNT) + 1;
-const FRICTION = 0.95;
+const FRICTION = 0.92;
 const MIN_VELOCITY = 0.05;
 
 function hoursOfDay(timestamp: number): number {
@@ -141,7 +141,7 @@ export default function CylindricalTimeline({
 
     const dx = e.clientX - lastX.current;
     lastX.current = e.clientX;
-    const delta = (dx / containerRef.current.clientWidth) * 180;
+    const delta = (dx / containerRef.current.clientWidth) * 90;
     velocity.current = delta;
     angleRef.current += delta;
     setAngle(angleRef.current);
