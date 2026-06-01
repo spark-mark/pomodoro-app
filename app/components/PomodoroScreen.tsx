@@ -5,7 +5,9 @@ import AnimatedTimer from "./AnimatedTimer";
 import { StatsPanelDragZone, StatsPanelScrollable } from "./StatsPanel";
 import SettingsPanel from "./SettingsPanel";
 import TimerControls from "./TimerControls";
+import Sidebar from "./Sidebar";
 import { tapHaptic } from "./haptics";
+import { useGyroscope } from "./useGyroscope";
 import {
   DEFAULT_SETTINGS,
   DEFAULT_WEEKLY_GOAL_MINUTES,
@@ -18,26 +20,19 @@ import {
 } from "./pomodoro-types";
 import type { PomodoroSettings } from "./pomodoro-types";
 import type { SyncStatus } from "./useSync";
+import { useWeather } from "./useWeather";
 
 export interface PomodoroScreenProps {
   mode: PomodoroMode;
   state: PomodoroState;
-  /** Remaining seconds. Defaults to the full duration of the current mode. */
   remaining?: number;
   stats?: PomodoroStats;
-  /** Weekly focus minutes goal. Defaults to 1800 (30h). */
   weeklyGoalMinutes?: number;
-  /** When true the stats overlay is expanded. */
   expanded?: boolean;
-  /** Fill the viewport instead of using fixed 393×852 dimensions. */
   fullscreen?: boolean;
-  /** Start time (ms, simulated) of the currently in-progress focus session. */
   currentSessionStart?: number | null;
-  /** Elapsed seconds of the currently in-progress focus session. */
   currentSessionElapsed?: number;
-  /** Simulated "now" timestamp (ms) used to position the timeline playhead. */
   simNow?: number;
-  /** Authenticated user's email, or null when signed out. */
   userEmail?: string | null;
   syncStatus?: SyncStatus;
   onPlay?: () => void;
@@ -68,18 +63,19 @@ const DEFAULT_STATS: PomodoroStats = {
 const BOTTOM_BLOOM =
   "radial-gradient(663px 394px at 200px 584px, rgba(198,92,92,1) 0%, rgba(245,134,94,0.726) 29.3%, rgba(220,129,51,0.598) 41.8%, rgba(196,124,8,0.469) 54.3%, rgba(196,152,68,0.235) 77.2%, rgba(196,180,128,0) 100%)";
 
-const FOCUS_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #e1e7f6 0%, #e1e7f6 100%)`;
-const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #31487b 0%, #31487b 100%)`;
+const FOCUS_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #b3b8eb 0%, #b3b8eb 100%)`;
+const BREAK_BG = `${BOTTOM_BLOOM}, linear-gradient(180deg, #2d3a6b 0%, #2d3a6b 100%)`;
 
 /* ── Design-time layout constants (based on 393×852 frame) ── */
 const DESIGN_H = 852;
-const D_TOP_COLLAPSED = 620;
+const SIDEBAR_W = 71;
+const D_TOP_COLLAPSED = 660;
 const D_TOP_EXPANDED = 160;
-const D_TIMER_H_COLLAPSED = 625;
+const D_TIMER_H_COLLAPSED = 665;
 const D_TIMER_H_EXPANDED = 160;
-const D_TIMER_PT_COLLAPSED = 120;
-const D_TIMER_PT_EXPANDED = 16;
-const D_TIMER_PB_COLLAPSED = 65;
+const D_TIMER_PT_COLLAPSED = 10;
+const D_TIMER_PT_EXPANDED = 8;
+const D_TIMER_PB_COLLAPSED = 12;
 const D_TIMER_PB_EXPANDED = 12;
 
 /* ── Helpers ── */
@@ -89,28 +85,21 @@ function timerColor(
   state: PomodoroState,
   expanded: boolean,
 ): string {
-  if (expanded) return mode === "focus" ? "#545b7f" : "#e6e1e0";
+  if (expanded) return mode === "focus" ? "#494d7d" : "#f1f3fe";
   if (state === "paused") return "#a98461";
-  if (mode === "focus") return "#545b7f";
-  return "#e6e1e0";
+  if (mode === "focus") return "#494d7d";
+  return "#f1f3fe";
 }
 
-function headerColors(mode: PomodoroMode) {
-  if (mode === "focus") {
-    return {
-      active: "#545b7f",
-      inactive: "rgba(103,114,209,0.28)",
-      activeLabel: "Focusing",
-      inactiveLabel: "Break",
-    };
-  }
-  const label = mode === "longBreak" ? "Long Break" : "Short Break";
-  return {
-    active: "#e6e1e0",
-    inactive: "#7b7fab",
-    activeLabel: label,
-    inactiveLabel: "Focus",
-  };
+function formatDateOrdinal(): { day: string; suffix: string; rest: string } {
+  const d = new Date();
+  const month = d.toLocaleDateString("en-US", { month: "long" });
+  const day = d.getDate();
+  const year = d.getFullYear();
+  const suffixes = ["th", "st", "nd", "rd"];
+  const v = day % 100;
+  const suffix = suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0];
+  return { day: `${month} ${day}`, suffix, rest: `, ${year}` };
 }
 
 export default function PomodoroScreen(props: PomodoroScreenProps) {
@@ -155,9 +144,13 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
     if (!expanded) setShowSettings(false);
   }, [expanded]);
 
-  const header = headerColors(mode);
-  const tColor = timerColor(mode, state, expanded);
   const isFocus = mode === "focus";
+  const tColor = timerColor(mode, state, expanded);
+  const totalDuration = modeDuration(mode, settings);
+  const timerProgress = state === "default" ? 0 : 1 - remaining / totalDuration;
+  const dateInfo = formatDateOrdinal();
+  const weather = useWeather();
+  const tilt = useGyroscope();
 
   /* ── Prevent iOS rubber-band overscroll revealing white gap ── */
   useEffect(() => {
@@ -192,7 +185,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
 
   const topCollapsed = Math.round(D_TOP_COLLAPSED * s);
   const topExpanded = Math.round(D_TOP_EXPANDED * s);
-  const topMidpoint = (topCollapsed + topExpanded) / 2;
+  const dragRange = topCollapsed - topExpanded;
+  const expandThreshold = topCollapsed - dragRange * 0.08;
+  const collapseThreshold = topExpanded + dragRange * 0.08;
 
   /* ── Drag-to-expand/collapse (overscroll-to-dismiss) ── */
   const [dragTop, setDragTop] = useState<number | null>(null);
@@ -279,10 +274,10 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       direction = null;
       dragging = false;
 
-      if (finalTop < topMidpoint) {
-        if (!expanded) onOpenStats?.();
-      } else {
-        if (expanded) onCloseStats?.();
+      if (!expanded && finalTop < expandThreshold) {
+        onOpenStats?.();
+      } else if (expanded && finalTop > collapseThreshold) {
+        onCloseStats?.();
       }
     };
 
@@ -296,7 +291,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       el.removeEventListener("touchend", onTouchEnd);
       el.removeEventListener("touchcancel", onTouchEnd);
     };
-  }, [expanded, topExpanded, topCollapsed, topMidpoint, onOpenStats, onCloseStats]);
+  }, [expanded, topExpanded, topCollapsed, expandThreshold, collapseThreshold, onOpenStats, onCloseStats]);
 
   const resolvedTop = isDragging
     ? dragTop
@@ -305,13 +300,23 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
       : topCollapsed;
   const resolvedHeight = H - resolvedTop;
 
-  const dragRange = topCollapsed - topExpanded;
   const dragProgress =
     dragRange > 0
       ? Math.max(0, Math.min(1, (topCollapsed - resolvedTop) / dragRange))
       : expanded
         ? 1
         : 0;
+
+  const handleSettingsClick = useCallback(() => {
+    if (!expanded) {
+      onOpenStats?.();
+      setShowSettings(true);
+    } else if (showSettings) {
+      setShowSettings(false);
+    } else {
+      setShowSettings(true);
+    }
+  }, [expanded, showSettings, onOpenStats]);
 
   return (
     <div
@@ -321,7 +326,7 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           ? "fixed inset-0 overflow-hidden"
           : "relative w-[393px] h-[852px] overflow-hidden rounded-[50px]"
       }
-      style={{ backgroundColor: "#e6e1e0" }}
+      style={{ backgroundColor: "#b3b8eb" }}
     >
       {/* ── Background layers (cross-fade by mode only) ── */}
       <div
@@ -333,10 +338,66 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         style={{ backgroundImage: BREAK_BG, opacity: isFocus ? 0 : 1 }}
       />
 
-      {/* ── Timer area ── */}
+      {/* ── Decorative glass circles — parallax via gyroscope ── */}
+      <div className="absolute pointer-events-none" style={{ left: -79, top: "calc(8.33% + 73px)", width: 584, height: 726 }}>
+        {/* Large circle — upper area, slightly left of center */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 530,
+            height: 530,
+            left: 20,
+            top: -10,
+            border: "0.8px solid rgba(255, 255, 255, 0.2)",
+            background: "radial-gradient(ellipse at 35% 30%, rgba(255,255,255,0.08) 0%, rgba(200,206,250,0.04) 50%, transparent 80%)",
+            transform: `translate(${tilt.x * 15}px, ${tilt.y * 15}px)`,
+            willChange: "transform",
+          }}
+        />
+        {/* Medium circle — overlapping large, offset bottom-right */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 340,
+            height: 340,
+            left: 200,
+            top: 260,
+            border: "0.8px solid rgba(255, 255, 255, 0.18)",
+            background: "radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.07) 0%, rgba(200,206,250,0.03) 50%, transparent 80%)",
+            transform: `translate(${tilt.x * 10}px, ${tilt.y * 10}px)`,
+            willChange: "transform",
+          }}
+        />
+        {/* Small circle — bottom-right, partially visible */}
+        <div
+          className="absolute rounded-full"
+          style={{
+            width: 180,
+            height: 180,
+            left: 320,
+            top: 440,
+            border: "0.8px solid rgba(255, 255, 255, 0.14)",
+            background: "radial-gradient(ellipse at 40% 35%, rgba(255,255,255,0.06) 0%, rgba(200,206,250,0.02) 50%, transparent 80%)",
+            transform: `translate(${tilt.x * 6}px, ${tilt.y * 6}px)`,
+            willChange: "transform",
+          }}
+        />
+      </div>
+
+      {/* ── Left sidebar ── */}
+      <Sidebar
+        onSettingsClick={handleSettingsClick}
+        progress={timerProgress}
+        fullscreen={fullscreen}
+        tilt={tilt}
+      />
+
+      {/* ── Timer / header area ── */}
       <div
-        className={`absolute inset-x-0 top-0 px-[20px] flex flex-col pointer-events-none ${isDragging ? "" : "timer-area-transition"}`}
+        className={`absolute top-0 px-[16px] flex flex-col pointer-events-none ${isDragging ? "" : "timer-area-transition"}`}
         style={{
+          left: SIDEBAR_W,
+          right: 0,
           height: Math.round(
             (D_TIMER_H_COLLAPSED + (D_TIMER_H_EXPANDED - D_TIMER_H_COLLAPSED) * dragProgress) * s,
           ),
@@ -352,82 +413,74 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           ),
         }}
       >
-        {/* Header + timer text */}
-        <div className="flex flex-col items-center w-full drop-shadow-[0px_4px_22.8px_rgba(255,255,255,0.25)] relative">
+        {/* Date + weather pill — fades when expanded */}
+        <div
+          className={`flex items-center justify-between w-full rounded-[46px] pl-[8px] pr-[2px] py-[2px] ${isDragging ? "" : "fade-transition"}`}
+          style={{
+            opacity: 1 - dragProgress,
+            background: isFocus ? "rgba(241, 243, 254, 0.4)" : "rgba(73, 77, 125, 0.4)",
+          }}
+        >
           <div
-            className="flex items-center justify-center w-full"
-            style={{ gap: 6 - dragProgress }}
+            className="text-[18px] tracking-[-0.54px] whitespace-nowrap flex items-center"
+            style={{ color: isFocus ? "#5b6196" : "#c4cafa" }}
           >
-            <p
-              className={`${isDragging ? "" : "text-transition"} leading-none whitespace-nowrap [text-shadow:0px_0px_14.9px_rgba(194,201,220,0.67)]`}
-              style={{
-                color: header.active,
-                fontSize: 20 - 4 * dragProgress,
-                letterSpacing: `${-1.2 + 0.24 * dragProgress}px`,
-              }}
-            >
-              {header.activeLabel}
-            </p>
-            <img
-              src="/arrow.svg"
-              alt=""
-              className={isDragging ? "" : "text-transition"}
-              style={{
-                height: 16 - 4 * dragProgress,
-                width: 15 - 3 * dragProgress,
-              }}
-            />
-            <p
-              className={`${isDragging ? "" : "text-transition"} leading-none whitespace-nowrap`}
-              style={{
-                color: header.inactive,
-                fontSize: 20 - 4 * dragProgress,
-                letterSpacing: `${-1.2 + 0.24 * dragProgress}px`,
-              }}
-            >
-              {header.inactiveLabel}
-            </p>
+            <span>{dateInfo.day}</span>
+            <sup className="text-[11px] relative top-[-0.4em]">{dateInfo.suffix}</sup>
+            <span>{dateInfo.rest}</span>
           </div>
-
-          <div
-            className={`${isDragging ? "" : "text-transition"} leading-none text-center w-full`}
-            style={{
-              color: tColor,
-              fontSize: 96 - 52 * dragProgress,
-              letterSpacing: `${-2.88 + 1.56 * dragProgress}px`,
-              marginTop: 16 - 10 * dragProgress,
-            }}
-          >
-            <AnimatedTimer text={formatTimer(remaining)} />
-          </div>
-
+          {weather && (
+            <div
+              className="flex items-center gap-[6px] rounded-[46px] px-[8px] py-[2px]"
+              style={{ background: isFocus ? "rgba(241, 243, 254, 0.4)" : "rgba(73, 77, 125, 0.4)" }}
+            >
+              <span
+                className="text-[18px] tracking-[-0.54px] whitespace-nowrap"
+                style={{ color: isFocus ? "#5b6196" : "#c4cafa" }}
+              >
+                {weather.temp}°C
+              </span>
+              <span className="text-[18px]">{weather.icon}</span>
+            </div>
+          )}
         </div>
 
+        {/* Timer — left-aligned */}
+        <div
+          className={`${isDragging ? "" : "text-transition"} leading-none mt-[4px]`}
+          style={{
+            color: tColor,
+            fontSize: 64 - 20 * dragProgress,
+            letterSpacing: `${-1.92 + 0.6 * dragProgress}px`,
+          }}
+        >
+          <AnimatedTimer text={formatTimer(remaining)} />
+        </div>
       </div>
 
       {/* ── Stats area ── */}
       <div
         ref={panelRef}
-        className="absolute inset-x-0 flex flex-col"
+        className="absolute flex flex-col"
         style={{
+          left: SIDEBAR_W + 6,
+          right: 6,
           top: resolvedTop,
-          bottom: 0,
-          backgroundColor: "#e6e1e0",
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          border: "0.5px solid rgba(133,114,114,0.15)",
-          borderBottom: "none",
+          bottom: 6,
+          backgroundColor: "#f1f3fe",
+          borderRadius: expanded ? "18px 18px 18px 18px" : "18px 18px 44px 18px",
+          border: "0.5px solid #c4cafa",
           boxShadow: expanded
-            ? "0px -8px 24px 0px rgba(133,114,114,0.12)"
-            : "0px 0px 45px 0px rgba(133,114,114,0.25)",
+            ? "0px -8px 24px 0px rgba(73,77,125,0.12), inset 0px 4px 4px rgba(255,255,255,0.49)"
+            : "0px 4px 4px rgba(0,0,0,0.25), inset 0px 4px 4px rgba(255,255,255,0.49)",
           transition: isDragging
             ? "none"
             : "top 500ms cubic-bezier(0.23,1,0.32,1), height 500ms cubic-bezier(0.23,1,0.32,1), border-radius 500ms cubic-bezier(0.23,1,0.32,1), box-shadow 500ms cubic-bezier(0.23,1,0.32,1)",
         }}
       >
-        {/* Controls — anchored to panel, fade with drag */}
+        {/* Controls — anchored above panel, right-aligned */}
         <div
-          className={`absolute left-[20px] right-[20px] ${isDragging ? "" : "fade-transition"} pointer-events-auto`}
+          className={`absolute right-0 left-0 ${isDragging ? "" : "fade-transition"} pointer-events-auto`}
           style={{
             top: -65,
             opacity: 1 - dragProgress,
@@ -447,47 +500,9 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           />
         </div>
 
-        {/* Top-right button — stats toggle on desktop, settings on mobile */}
-        {isMobile ? (
-          <button
-            type="button"
-            onClick={() => {
-              tapHaptic();
-              if (!expanded) {
-                onOpenStats?.();
-                setShowSettings(true);
-              } else if (showSettings) {
-                setShowSettings(false);
-              } else {
-                setShowSettings(true);
-              }
-            }}
-            aria-label="Settings"
-            className="pressable-sm fade-transition absolute right-[20px] flex items-center justify-center pointer-events-auto"
-            style={{ top: -51 }}
-          >
-            <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="#545b7f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </button>
-        ) : (
-          <div className="absolute right-[20px] flex items-center gap-[8px] pointer-events-auto" style={{ top: -65 }}>
-            <button
-              type="button"
-              onClick={() => {
-                tapHaptic();
-                if (!expanded) onOpenStats?.();
-                setShowSettings((v) => !v);
-              }}
-              aria-label="Settings"
-              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[12px]"
-            >
-              <svg width="31" height="31" viewBox="0 0 24 24" fill="none" stroke="#545b7f" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </button>
+        {/* Desktop-only stats toggle */}
+        {!isMobile && (
+          <div className="absolute right-[12px] flex items-center gap-[8px] pointer-events-auto" style={{ top: -55 }}>
             <button
               type="button"
               onClick={() => {
@@ -497,7 +512,8 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
                 else onOpenStats?.();
               }}
               aria-label={expanded ? "Close stats" : "Open stats"}
-              className="pressable-sm fade-transition flex items-center justify-center bg-[rgba(194,201,220,0.32)] p-[7px] rounded-[12px]"
+              className="pressable-sm fade-transition flex items-center justify-center p-[7px] rounded-[12px]"
+              style={{ background: "rgba(196, 202, 250, 0.32)" }}
             >
               <img
                 src={expanded ? "/stats_active.svg" : "/stats_inactive.svg"}
@@ -508,46 +524,44 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
           </div>
         )}
 
-        {/* Fixed top edge — content scrolls behind this to preserve rounded gap (only when expanded) */}
+        {/* Fixed top edge — content scrolls behind this */}
         <div
           className="absolute inset-x-0 z-20 pointer-events-none"
           style={{
             top: -1,
-            height: 19,
-            background: "#e6e1e0",
-            borderTopLeftRadius: 24,
-            borderTopRightRadius: 24,
+            height: 13,
+            background: "#f1f3fe",
+            borderTopLeftRadius: 18,
+            borderTopRightRadius: 18,
             opacity: expanded ? 1 : 0,
           }}
         >
-          {/* Side wings — extend overlay down the left/right edges */}
           <div
             className="absolute"
-            style={{ bottom: -14, left: 0, width: 18, height: 14, background: "#e6e1e0" }}
+            style={{ bottom: -12, left: 0, width: 12, height: 12, background: "#f1f3fe" }}
           />
           <div
             className="absolute"
-            style={{ bottom: -14, right: 0, width: 18, height: 14, background: "#e6e1e0" }}
+            style={{ bottom: -12, right: 0, width: 12, height: 12, background: "#f1f3fe" }}
           />
-          {/* Concave corners — radial gradient cutout for rounded content opening */}
           <div
             className="absolute"
             style={{
-              bottom: -14,
-              left: 18,
-              width: 14,
-              height: 14,
-              background: "radial-gradient(circle at 100% 100%, transparent 14px, #e6e1e0 14px)",
+              bottom: -12,
+              left: 12,
+              width: 12,
+              height: 12,
+              background: "radial-gradient(circle at 100% 100%, transparent 12px, #f1f3fe 12px)",
             }}
           />
           <div
             className="absolute"
             style={{
-              bottom: -14,
-              right: 18,
-              width: 14,
-              height: 14,
-              background: "radial-gradient(circle at 0% 100%, transparent 14px, #e6e1e0 14px)",
+              bottom: -12,
+              right: 12,
+              width: 12,
+              height: 12,
+              background: "radial-gradient(circle at 0% 100%, transparent 12px, #f1f3fe 12px)",
             }}
           />
         </div>
@@ -556,13 +570,14 @@ export default function PomodoroScreen(props: PomodoroScreenProps) {
         <div
           ref={scrollRef}
           className="flex-1 flex flex-col min-h-0"
-          data-scrollable={expanded ? "" : undefined}
           style={{
-            overflowY: expanded ? "auto" : "hidden",
+            borderRadius: "inherit",
+            overflow: expanded ? "auto" : "hidden",
             touchAction: expanded ? "pan-y" : "none",
           }}
+          {...(expanded ? { "data-scrollable": "" } : {})}
         >
-          <div className="shrink-0 h-[18px]" />
+          <div className="shrink-0 h-[12px]" />
           {showSettings ? (
             <SettingsPanel
               settings={settings}
