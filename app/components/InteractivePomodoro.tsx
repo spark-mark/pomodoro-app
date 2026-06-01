@@ -19,6 +19,48 @@ import {
 const STORAGE_KEY = "pomodoro-mobile.v1";
 const GOALS_STORAGE_KEY = "pomodoro-goals.v1";
 const SETTINGS_STORAGE_KEY = "pomodoro-settings.v1";
+const TIMER_STATE_KEY = "pomodoro-timer-state.v1";
+
+interface TimerSnapshot {
+  mode: PomodoroMode;
+  state: PomodoroState;
+  remaining: number;
+  pomosBeforeLongBreak: number;
+}
+
+function loadTimerSnapshot(): TimerSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(TIMER_STATE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw) as TimerSnapshot;
+    if (s.state === "default") return null;
+    if (typeof s.remaining !== "number" || s.remaining <= 0) return null;
+    return s;
+  } catch { return null; }
+}
+
+function saveTimerSnapshot(s: TimerSnapshot): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (s.state === "default") {
+      window.localStorage.removeItem(TIMER_STATE_KEY);
+    } else {
+      window.localStorage.setItem(TIMER_STATE_KEY, JSON.stringify(s));
+    }
+  } catch { /* ignore */ }
+}
+
+function loadSettings(): PomodoroSettings {
+  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+  try {
+    const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
+    if (!raw) return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) as Partial<PomodoroSettings> };
+  } catch {
+    return DEFAULT_SETTINGS;
+  }
+}
 
 interface PersistedGoals {
   weeklyGoalMinutes: number;
@@ -165,10 +207,13 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const storageKey = props.storageKey ?? STORAGE_KEY;
   const speed = Math.max(1, Math.floor(props.speed ?? 1));
 
-  const [mode, setMode] = useState<PomodoroMode>("focus");
-  const [state, setState] = useState<PomodoroState>("default");
-  const [remaining, setRemaining] = useState<number>(modeDuration("focus"));
-  const [pomosBeforeLongBreak, setPomosBeforeLongBreak] = useState<number>(0);
+  const savedSnapshot = useRef(loadTimerSnapshot());
+  const initialSettings = useRef(loadSettings());
+  const [mode, setMode] = useState<PomodoroMode>(() => savedSnapshot.current?.mode ?? "focus");
+  const [state, setState] = useState<PomodoroState>(() => savedSnapshot.current ? "paused" : "default");
+  const [remaining, setRemaining] = useState<number>(() =>
+    savedSnapshot.current?.remaining ?? modeDuration(savedSnapshot.current?.mode ?? "focus", initialSettings.current));
+  const [pomosBeforeLongBreak, setPomosBeforeLongBreak] = useState<number>(() => savedSnapshot.current?.pomosBeforeLongBreak ?? 0);
   const [persisted, setPersisted] = useState<Persisted>({
     byDate: {},
     totalPomos: 0,
@@ -179,9 +224,13 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     lastWeekKey: "",
   });
   const [showStats, setShowStats] = useState<boolean>(false);
-  const [settings, setSettings] = useState<PomodoroSettings>(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState<PomodoroSettings>(initialSettings.current);
 
-  const sessionStartRef = useRef<number | null>(null);
+  const sessionStartRef = useRef<number | null>(
+    savedSnapshot.current && savedSnapshot.current.mode === "focus"
+      ? Date.now() - Math.max(0, modeDuration("focus", initialSettings.current) - savedSnapshot.current.remaining) * 1000
+      : null,
+  );
   const breakStartRef = useRef<number | null>(null);
   const completingRef = useRef(false);
   const simNowRef = useRef<number>(Date.now());
@@ -218,25 +267,25 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     if (nextGoals !== loadedGoals) saveGoal(nextGoals);
     setGoals(nextGoals);
 
-    try {
-      const raw = window.localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (raw) {
-        const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) as Partial<PomodoroSettings> };
-        setSettings(loaded);
-        setRemaining(modeDuration("focus", loaded));
-        // Sync goals with loaded settings so suggested pomos reflect the saved daily goal
-        const derivedWeekly = loaded.dailyGoalHours * 60 * 7;
-        setGoals((prev) => {
-          if (prev.weeklyGoalMinutes !== derivedWeekly) {
-            const updated = { ...prev, weeklyGoalMinutes: derivedWeekly };
-            saveGoal(updated);
-            return updated;
-          }
-          return prev;
-        });
-      }
-    } catch { /* ignore */ }
+    // Settings are loaded synchronously at init (see initialSettings), so we only
+    // need to keep the weekly goal in sync with the saved daily goal here.
+    {
+      const loaded = initialSettings.current;
+      const derivedWeekly = loaded.dailyGoalHours * 60 * 7;
+      setGoals((prev) => {
+        if (prev.weeklyGoalMinutes !== derivedWeekly) {
+          const updated = { ...prev, weeklyGoalMinutes: derivedWeekly };
+          saveGoal(updated);
+          return updated;
+        }
+        return prev;
+      });
+    }
   }, [storageKey]);
+
+  useEffect(() => {
+    saveTimerSnapshot({ mode, state, remaining, pomosBeforeLongBreak });
+  }, [mode, state, remaining, pomosBeforeLongBreak]);
 
   const handleSettingsChange = useCallback((next: PomodoroSettings) => {
     setSettings(next);
@@ -618,7 +667,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     import("@/app/plugins/LiveActivityPlugin").then(({ LiveActivity }) => {
       LiveActivity.stop({ mode }).catch(() => {});
     }).catch(() => {});
-  }, [mode, remaining, addSession, sync]);
+  }, [mode, remaining, addSession, sync, settings]);
 
   const handleSkip = useCallback(() => {
     if (mode === "focus" && sessionStartRef.current !== null) {
@@ -643,7 +692,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
     setMode("focus");
     setState("default");
     setRemaining(modeDuration("focus", settings));
-  }, [mode, remaining, addSession, sync]);
+  }, [mode, remaining, addSession, sync, settings]);
 
   const handleSignedIn = useCallback(async () => {
     await sync.refreshSession();
