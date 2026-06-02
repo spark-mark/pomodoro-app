@@ -78,11 +78,11 @@ export default function CylindricalTimeline({
         0,
         focusDurationSeconds - currentSessionElapsed,
       );
-      const remainingSlices = Math.ceil(remainingSeconds / (20 * 60));
+      const totalSlices = Math.max(1, Math.ceil(remainingSeconds / (20 * 60)));
 
       states[playheadSlice] = "in-progress-filled";
 
-      for (let j = 1; j <= remainingSlices; j++) {
+      for (let j = 1; j < totalSlices; j++) {
         const si = (playheadSlice + j) % SLICE_COUNT;
         if (states[si] === "empty") {
           states[si] = "in-progress-outline";
