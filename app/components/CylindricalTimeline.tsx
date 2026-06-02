@@ -74,20 +74,18 @@ export default function CylindricalTimeline({
     }
 
     if (currentSessionStart !== null) {
-      const startHour = hoursOfDay(currentSessionStart);
-      const startSlice = timeToSliceIndex(startHour);
-      const elapsedSlices =
-        currentSessionElapsed > 0
-          ? Math.ceil(currentSessionElapsed / (20 * 60))
-          : 0;
+      const startSlice = timeToSliceIndex(hoursOfDay(currentSessionStart));
       const plannedSlices = Math.max(
         1,
         Math.ceil(focusDurationSeconds / (20 * 60)),
       );
+      const playheadDist =
+        ((playheadSlice - startSlice) % SLICE_COUNT + SLICE_COUNT) %
+        SLICE_COUNT;
 
       for (let j = 0; j < plannedSlices; j++) {
         const si = (startSlice + j) % SLICE_COUNT;
-        if (j < elapsedSlices) {
+        if (j <= playheadDist) {
           states[si] = "in-progress-filled";
         } else if (states[si] === "empty") {
           states[si] = "in-progress-outline";
@@ -99,8 +97,8 @@ export default function CylindricalTimeline({
   }, [
     sessions,
     currentSessionStart,
-    currentSessionElapsed,
     focusDurationSeconds,
+    playheadSlice,
   ]);
 
   const momentum = useCallback(() => {
@@ -206,8 +204,8 @@ export default function CylindricalTimeline({
             if (state === "completed" || state === "in-progress-filled") {
               bg = "#5b6196";
             } else if (state === "in-progress-outline") {
-              bg = "transparent";
-              border = "1.5px dashed #5b6196";
+              bg = "rgba(91,97,150,0.15)";
+              border = "1px solid rgba(91,97,150,0.4)";
             } else {
               bg = "transparent";
             }
