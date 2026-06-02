@@ -74,20 +74,17 @@ export default function CylindricalTimeline({
     }
 
     if (currentSessionStart !== null) {
-      const startSlice = timeToSliceIndex(hoursOfDay(currentSessionStart));
-      const plannedSlices = Math.max(
-        1,
-        Math.ceil(focusDurationSeconds / (20 * 60)),
+      const remainingSeconds = Math.max(
+        0,
+        focusDurationSeconds - currentSessionElapsed,
       );
-      const playheadDist =
-        ((playheadSlice - startSlice) % SLICE_COUNT + SLICE_COUNT) %
-        SLICE_COUNT;
+      const remainingSlices = Math.ceil(remainingSeconds / (20 * 60));
 
-      for (let j = 0; j < plannedSlices; j++) {
-        const si = (startSlice + j) % SLICE_COUNT;
-        if (j <= playheadDist) {
-          states[si] = "in-progress-filled";
-        } else if (states[si] === "empty") {
+      states[playheadSlice] = "in-progress-filled";
+
+      for (let j = 1; j <= remainingSlices; j++) {
+        const si = (playheadSlice + j) % SLICE_COUNT;
+        if (states[si] === "empty") {
           states[si] = "in-progress-outline";
         }
       }
@@ -97,6 +94,7 @@ export default function CylindricalTimeline({
   }, [
     sessions,
     currentSessionStart,
+    currentSessionElapsed,
     focusDurationSeconds,
     playheadSlice,
   ]);
