@@ -401,7 +401,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
 
   const addSession = useCallback((entry: SessionEntry) => {
     setPersisted((prev) => {
-      const key = todayKey();
+      const key = dateKey(new Date(entry.startTime));
       const day = prev.byDate[key] ?? {
         pomos: 0,
         focusSeconds: 0,
@@ -420,7 +420,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
   const completeFocusSession = useCallback(() => {
     const startedAt = sessionStartRef.current;
     sessionStartRef.current = null;
-    const key = todayKey();
+    const key = startedAt !== null ? dateKey(new Date(startedAt)) : todayKey();
     setPersisted((prev) => {
       const day = prev.byDate[key] ?? {
         pomos: 0,
@@ -549,7 +549,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
               const breakStart = breakStartRef.current ?? (Date.now() - breakDuration * 1000);
               addSession({ startTime: breakStart, durationSeconds: breakDuration, type: breakType });
               syncRef.current.pushSession({
-                dateKey: todayKey(),
+                dateKey: dateKey(new Date(breakStart)),
                 startTime: breakStart,
                 durationSeconds: breakDuration,
                 isCompleted: true,
@@ -653,7 +653,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
           type: "focus",
         });
         sync.pushSession({
-          dateKey: todayKey(),
+          dateKey: dateKey(new Date(startedAt)),
           startTime: startedAt,
           durationSeconds: elapsed,
           isCompleted: false,
@@ -680,7 +680,7 @@ export default function InteractivePomodoro(props: InteractivePomodoroProps) {
           type: "focus",
         });
         sync.pushSession({
-          dateKey: todayKey(),
+          dateKey: dateKey(new Date(startedAt)),
           startTime: startedAt,
           durationSeconds: elapsed,
           isCompleted: false,
